@@ -5,11 +5,11 @@
 (setq tramp-default-method "plink")
 
 (setq screen-width 120
-      screen-height 50)
+      screen-height 55)
 
 (if (string-equal user-login-name "jari")
     (setq screen-width 90
-	  screen-height 43))
+	  screen-height 60))
 
 (setq inhibit-startup-screen t
       visible-bell 1
@@ -17,7 +17,7 @@
       default-frame-alist '((top . 0)
 			    (left . 0)
 			    (width . 120)
-			    (height . 50))
+			    (height . screen-height))
       w32-get-true-file-attributes nil
       tab-stop-list (number-sequence 4 200 4)
       tab-width 4
@@ -128,6 +128,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(browse-url-chrome-program "C:/Program Files (x86)/Google/Chrome/Application/chrome")
  '(browse-url-firefox-program "c:/Program Files/Firefox/firefox")
  '(custom-safe-themes
    (quote
@@ -135,7 +136,7 @@
  '(magit-diff-arguments (quote ("--stat" "--no-ext-diff" "-w")))
  '(package-selected-packages
    (quote
-    (helm-projectile projectile helm zenburn-theme magit))))
+    (elfeed twittering-mode helm-projectile projectile helm zenburn-theme magit))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
