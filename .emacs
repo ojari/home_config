@@ -1,6 +1,8 @@
-(tool-bar-mode -1)
 (show-paren-mode t)
 (menu-bar-mode -1)
+(if window-system
+    (progn
+      (tool-bar-mode -1)))
 
 (setq tramp-default-method "plink")
 
@@ -63,10 +65,11 @@
      (define-key dired-mode-map (kbd "<right>") 'dired-find-file)))
 
 
-(load-theme 'zenburn t)
+;(load-theme 'zenburn t)
 ;(load-theme 'tango-dark)
 
-(cd "c:/home")
+(if (eq system-type 'windows-nt)
+    (cd "c:/home"))
 
 
 ;;------------------------------------------------------------------------------
