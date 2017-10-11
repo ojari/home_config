@@ -1,10 +1,10 @@
 #!/bin/sh
 
-VERSION=27
+VERSION=28
 RPI="no"
 
 
-cd /mnt/linux-4.9.51
+cd /mnt/linux-4.9.54
 
 
 if [ "$RPI" == "yes" ];
