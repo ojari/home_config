@@ -16,5 +16,7 @@ else
     echo "Linux"
 
     alias p="python"
+    alias m=make
     alias n="node"
+    alias e="/usr/bin/emacs"
 fi

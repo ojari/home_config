@@ -4,6 +4,8 @@
     (progn
       (tool-bar-mode -1)))
 
+(setq gdb-many-windows t)
+
 (setq tramp-default-method "plink")
 
 (setq screen-width 120

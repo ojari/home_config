@@ -1,4 +1,8 @@
-xterm*font: *-fixed-*-*-*-18-*
+xterm*savelines: 4096
+xterm*faceName: DejaVu Sans Mono:size=12:antialias=true
+xterm*rightScrollBar: true
+xterm*ScrollBar: true
+;xterm*font: *-fixed-*-*-*-18-*
 xterm*termName: XTerm
 xterm*xftAntialias: true
 xterm*background: #3f3f3f
