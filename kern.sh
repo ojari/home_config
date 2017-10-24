@@ -1,10 +1,10 @@
 #!/bin/sh
 
-VERSION=28
+VERSION=29
 RPI="no"
 
 
-cd /mnt/linux-4.9.54
+cd /mnt/linux-4.9.56
 
 
 if [ "$RPI" == "yes" ];
@@ -24,11 +24,11 @@ else
     make nconfig
     cp .config /home/jari/config_${VERSION}
 
-    make-kpkg clean
-    fakeroot make-kpkg -j3 --initrd --append-to-version=-j${VERSION} --revision=${VERSION} kernel_image kernel_headers
+    #make-kpkg clean
+    #fakeroot make-kpkg -j3 --initrd --append-to-version=-j${VERSION} --revision=${VERSION} kernel_image kernel_headers
 
-    #make clean
-    #make KDEB_PKGVERSION=${VERSION} LOCALVERSION=.j${VERSION} deb-pkg
+    make clean
+    make -j2 KDEB_PKGVERSION=${VERSION} LOCALVERSION=.j${VERSION} bindeb-pkg
 fi
 
 
