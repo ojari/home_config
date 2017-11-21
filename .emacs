@@ -37,6 +37,12 @@
 (global-set-key [f11] 'kill-this-buffer)
 (global-set-key [f12] 'magit-status)
 
+(global-set-key (kbd "M-[ a") 'windmove-up)
+(global-set-key (kbd "M-[ b") 'windmove-down)
+(global-set-key (kbd "M-[ c") 'windmove-right)
+(global-set-key (kbd "M-[ d") 'windmove-left)
+
+
 (fset 'yes-or-no-p 'y-or-n-p)
 
 (require 'package)
@@ -48,9 +54,11 @@
 (package-initialize)
 
 ;(require 'helm-config)
-(global-set-key (kbd "M-x")     'helm-M-x)
-(global-set-key (kbd "C-x r b") 'helm-filtered-bookmarks)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
+;(global-set-key (kbd "M-x")     'helm-M-x)
+;(global-set-key (kbd "C-x r b") 'helm-filtered-bookmarks)
+;(global-set-key (kbd "C-x C-f") 'helm-find-files)
+(ido-mode t)
+(ido-vertical-mode t)
 
 (add-hook 'c-mode-hook
           '(lambda ()
@@ -122,10 +130,10 @@
   (interactive)
   (copy-file "BUILD/blinky.bin" "D:/"))
 
-(defun mbed-gdb ()
+(defun arm-gdb ()
   (interactive)
   (setq gdb-many-windows t)
-  (gdb "arm-none-eabi-gdb -i=mi BUILD/blinky.elf"))
+  (gdb "/mnt/bin/gcc-arm/bin/arm-none-eabi-gdb -i=mi meas.elf"))
 
 ;;------------------------------------------------------------------------------
 (custom-set-variables
