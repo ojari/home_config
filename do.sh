@@ -35,6 +35,10 @@ case $1 in
     
 	make -j3 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 	;;
+    dl)
+	echo "dpkg list"
+	dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
+	;;
     three)
 	echo "3"
 	;;
