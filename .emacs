@@ -4,7 +4,7 @@
     (progn
       (tool-bar-mode -1)))
 
-(setq gdb-many-windows t)
+(setq gdb-many-windows nil)
 
 (setq tramp-default-method "plink")
 
@@ -93,6 +93,13 @@
   (add-to-list 'magit-diff-options "-w")
   (magit-refresh))
 
+
+(load-library "bookmark")
+;;------------------------------------------------------------------------------
+(defun ido-bookmarks ()
+  (interactive)
+  (let ((bmark (ido-completing-read "Bookmark:" (bookmark-all-names) nil t)))
+    (message (bookmark-get-filename bmark))))
 
 ;;------------------------------------------------------------------------------
 ;; org-mode

@@ -35,15 +35,26 @@ case $1 in
     
 	make -j3 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 	;;
+    be)
+	cd /mnt/emacs-25.3
+	./configure --prefix=/opt -q \
+		    --enable-silent-rules \
+		    --without-selinux \
+		    --with-sound=no \
+		    --disable-acl
+	make
+	;;
     dl)
 	echo "dpkg list"
 	dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
 	;;
-    three)
-	echo "3"
-	;;
     *)
 	echo "Unknown command: $1"
+	echo "  dk - download kernel"
+	echo "  bx - build X86 kernel"
+	echo "  br - build RPI kernel"
+	echo "  be - build emacs"
+	echo "  dl - dpkg list (sorted by size)"
 	;;
 esac
 
