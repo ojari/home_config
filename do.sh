@@ -36,12 +36,37 @@ case $1 in
 	make -j3 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 	;;
     be)
-	cd /mnt/emacs-25.3
+	cd /mnt/work/emacs-25.3
 	./configure --prefix=/opt -q \
 		    --enable-silent-rules \
 		    --without-selinux \
 		    --with-sound=no \
 		    --disable-acl
+	make
+	;;
+    bt)
+	cd /mnt/work/tvheadend-4.2.1
+	./configure --prefix=/opt \
+		    --disable-satip_server \
+		    --disable-satip_client \
+		    --disable-hdhomerun_static \
+		    --disable-iptv \
+		    --disable-avahi \
+		    --disable-ffmpeg_static \
+		    --disable-libx264 \
+		    --disable-libx264_static \
+		    --disable-libx265 \
+		    --disable-libx265_static \
+		    --disable-libvpx \
+		    --disable-libvpx_static \
+		    --disable-libtheora \
+		    --disable-libtheora_static \
+		    --disable-libvorbis \
+		    --disable-libvorbis_static \
+		    --disable-libfdkaac \
+		    --disable-libfdkaac_static \
+		    --disable-nvenc  \
+		    --disable-libav
 	make
 	;;
     dl)
@@ -54,6 +79,7 @@ case $1 in
 	echo "  bx - build X86 kernel"
 	echo "  br - build RPI kernel"
 	echo "  be - build emacs"
+	echo "  bt - build tvheadend"
 	echo "  dl - dpkg list (sorted by size)"
 	;;
 esac
