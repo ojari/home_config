@@ -36,3 +36,9 @@
 ;(global-set-key (kbd "<C-i>") 'previous-line)
 ;(global-set-key (kbd "TAB") 'indent-region)
 ;(global-set-key (kbd "C-j") 'backward-char)
+
+(global-set-key (kbd "M-p") 'previous-line)
+(global-set-key (kbd "M-ö") 'next-line)
+(global-set-key (kbd "M-ä") 'forward-char)
+(global-set-key (kbd "M-l") 'backward-char)
+
