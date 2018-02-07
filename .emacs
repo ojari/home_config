@@ -21,7 +21,8 @@
       default-frame-alist '((top . 0)
 			    (left . 0)
 			    (width . 120)
-			    (height . screen-height))
+			    (height . screen-height)
+			    (font . "-unknown-DejaVu Sans Mono-normal-normal-normal-*-17-*-*-*-m-0-iso10646-1"))
       w32-get-true-file-attributes nil
       tab-stop-list (number-sequence 4 200 4)
       tab-width 4
@@ -59,6 +60,9 @@
 ;(global-set-key (kbd "C-x C-f") 'helm-find-files)
 (ido-mode t)
 (ido-vertical-mode t)
+(which-key-mode)
+
+(load-library "~/keymap.el")
 
 (add-hook 'c-mode-hook
           '(lambda ()
@@ -74,7 +78,7 @@
      (define-key dired-mode-map (kbd "<left>") 'dired-up-directory)
      (define-key dired-mode-map (kbd "<right>") 'dired-find-file)))
 
-
+(load-theme 'wombat)
 ;(load-theme 'zenburn t)
 ;(load-theme 'tango-dark)
 
@@ -156,7 +160,7 @@
  '(magit-diff-arguments (quote ("--stat" "--no-ext-diff" "-w")))
  '(package-selected-packages
    (quote
-    (elfeed twittering-mode helm-projectile projectile helm zenburn-theme magit))))
+    (which-key elfeed twittering-mode zenburn-theme magit))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

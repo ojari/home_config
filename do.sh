@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION=4.9.64
-KVERSION=30
+VERSION=4.9.74
+KVERSION=31
 
 case $1 in
     dk)	
@@ -73,6 +73,9 @@ case $1 in
 	echo "dpkg list"
 	dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
 	;;
+    vnc)
+	vncserver -geometry 1920x1080 -depth 16 :40
+	;;
     *)
 	echo "Unknown command: $1"
 	echo "  dk - download kernel"
@@ -81,6 +84,7 @@ case $1 in
 	echo "  be - build emacs"
 	echo "  bt - build tvheadend"
 	echo "  dl - dpkg list (sorted by size)"
+	echo "  vnc- start VNC server"
 	;;
 esac
 
