@@ -1,3 +1,4 @@
+
 (show-paren-mode t)
 (menu-bar-mode -1)
 (if window-system
@@ -58,11 +59,15 @@
 ;(global-set-key (kbd "M-x")     'helm-M-x)
 ;(global-set-key (kbd "C-x r b") 'helm-filtered-bookmarks)
 ;(global-set-key (kbd "C-x C-f") 'helm-find-files)
+
 (ido-mode t)
 (ido-vertical-mode t)
+(setq ido-enable-flex-matching t)
+
 (which-key-mode)
 
-(load-library "~/keymap.el")
+(setq eclim-executable "/mnt/eclipse/plugins/org.eclim_2.7.2/bin/eclim")
+
 
 (add-hook 'c-mode-hook
           '(lambda ()
@@ -105,6 +110,14 @@
   (let ((bmark (ido-completing-read "Bookmark:" (bookmark-all-names) nil t)))
     (message (bookmark-get-filename bmark))))
 
+(defun ido-m-x ()
+  (interactive)
+  (call-interactively
+   (intern
+    (ido-completing-read
+     "M-x "
+     (all-completions "" obarray 'commandp)))))
+
 ;;------------------------------------------------------------------------------
 ;; org-mode
 (setq org-publish-project-alist
@@ -135,7 +148,6 @@
 
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
 
-
 ;;------------------------------------------------------------------------------
 (defun mbed-flash ()
   (interactive)
@@ -145,6 +157,9 @@
   (interactive)
   (setq gdb-many-windows t)
   (gdb "/mnt/bin/gcc-arm/bin/arm-none-eabi-gdb -i=mi meas.elf"))
+
+
+(load-library "~/keymap.el")
 
 ;;------------------------------------------------------------------------------
 (custom-set-variables
@@ -158,9 +173,10 @@
    (quote
     ("8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8" default)))
  '(magit-diff-arguments (quote ("--stat" "--no-ext-diff" "-w")))
+ '(magit-fetch-arguments nil)
  '(package-selected-packages
    (quote
-    (which-key elfeed twittering-mode zenburn-theme magit))))
+    (company-emacs-eclim eclim racer avy which-key zenburn-theme magit))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
