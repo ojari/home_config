@@ -192,6 +192,16 @@
   (gdb "/mnt/bin/gcc-arm/bin/arm-none-eabi-gdb -i=mi bin/meas.elf"))
 
 
+(defun my-region-transfer ()
+  (interactive)
+  (if (region-active-p)
+      (let ((text (buffer-substring (region-beginning) (region-end))))
+	(other-window 1)
+	(insert text)
+	(insert "\n")
+	(other-window 1))
+    (message "No region active!")))
+
 ;;------------------------------------------------------------------------------
 (load-library "~/keymap.el")
 (load-library "~/feed.el")

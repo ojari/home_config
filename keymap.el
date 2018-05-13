@@ -51,7 +51,7 @@
 ;(global-set-key (kbd "<C-m>") 'newline)
 
 (global-set-key (kbd "C-z") 'undo)
-;;(global-set-key (kbd "C-s") 'swiper)
+(global-set-key (kbd "C-s") 'isearch-forward)
 ;;(global-set-key (kbd "<C-i>") 'previous-line)
 ;(global-set-key (kbd "TAB") 'indent-region)
 ;(global-set-key (kbd "C-j") 'backward-char)
