@@ -1,8 +1,11 @@
 #!/bin/sh
 
-alias ls="ls --color=always"
-alias ll="ls -la"
+alias ls="ls --color=always --group-directories-first"
+alias ec="tmux select-window -t 2 && emacsclient"
+alias ll="ls -lAh"
 alias du1="du --max-depth=1"
+alias ta="tmux attach"
+alias grep="grep --color"
 
 if [ "$OS" == "Windows_NT" ];
 then
@@ -13,10 +16,13 @@ then
 else
     echo ".profile Linux"
 
-    alias p="python"
+    alias p="python3"
     alias m=make
     alias n="node"
     alias e="/usr/bin/emacs"
+    
+    RUST_SRC_PATH=/mnt/src/rust-master/src
+    PATH="$PATH:/opt/rust/bin:/mnt/bin/gcc-arm/bin"
 fi
 
 # if running bash
