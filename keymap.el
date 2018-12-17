@@ -1,3 +1,27 @@
+(global-set-key [f11] 'kill-this-buffer)
+(global-set-key [f12] 'magit-status)
+
+(eval-after-load "dired"
+  '(progn
+     (define-key dired-mode-map (kbd "<left>") 'dired-up-directory)
+     (define-key dired-mode-map (kbd "<right>") 'dired-find-file)
+     (define-key dired-mode-map (kbd "j") 'dired-up-directory)
+     (define-key dired-mode-map (kbd "l") 'dired-find-file)
+     (define-key dired-mode-map (kbd "i") 'previous-line)
+     (define-key dired-mode-map (kbd "k") 'next-line)))
+
+(eval-after-load "ibuffer"
+  '(progn
+     (define-key ibuffer-mode-map (kbd "i") 'previous-line)
+     (define-key ibuffer-mode-map (kbd "k") 'next-line)))
+
+(eval-after-load "elfeed"
+  '(progn
+     (define-key elfeed-search-mode-map (kbd "i") 'previous-line)
+     (define-key elfeed-search-mode-map (kbd "k") 'next-line)
+     (define-key elfeed-show-mode-map   (kbd "i") 'elfeed-show-next)
+     (define-key elfeed-show-mode-map   (kbd "k") 'elfeed-show-prev)))
+
 ;(define-key input-decode-map [?\C-i] [C-i])
 ;(define-key input-decode-map [?\C-m] [C-m])
 (define-key key-translation-map (kbd "§") (kbd "ESC"))
@@ -44,6 +68,7 @@
 (define-key my-jmenu "j" 'ido-m-x)
 ;;(define-key my-jmenu "j" 'execute-extended-command)
 (define-key my-jmenu "m" 'my-compile)
+(define-key my-jmenu "n" 'ibuffer)
 (define-key my-jmenu "p" 'eclim-project-build)
 (define-key my-jmenu "r" 'lgrep)
 (define-key my-jmenu "v" 'avy-move-line)
@@ -60,4 +85,3 @@
 (global-set-key (kbd "M-k") 'next-line)
 (global-set-key (kbd "M-l") 'forward-char)
 (global-set-key (kbd "M-j") 'backward-char)
-

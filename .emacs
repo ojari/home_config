@@ -38,8 +38,6 @@
 
 ;; Keyboard mappings
 ;;
-(global-set-key [f11] 'kill-this-buffer)
-(global-set-key [f12] 'magit-status)
 
 (global-set-key (kbd "M-[ a") 'windmove-up)
 (global-set-key (kbd "M-[ b") 'windmove-down)
@@ -90,11 +88,6 @@
              (c-set-style "stroustrup")))
 
 ;;------------------------------------------------------------------------------
-(eval-after-load "dired"
-  '(progn
-     (define-key dired-mode-map (kbd "<left>") 'dired-up-directory)
-     (define-key dired-mode-map (kbd "<right>") 'dired-find-file)))
-
 (load-theme 'wombat)
 ;(load-theme 'zenburn t)
 ;(load-theme 'tango-dark)
@@ -143,7 +136,7 @@
     (let ((path (file-name-directory (buffer-file-name))))
       (if (string-match "/src/$" path)
 	  (my-compile-parent path)
-	(compile "make -k"))))
+	(compile "ninja"))))
    ((equal major-mode 'c++-mode)  (compile "make -k"))
    ((equal major-mode 'emacs-lisp-mode)
     (byte-compile-file (buffer-file-name)))
@@ -226,8 +219,7 @@
  '(magit-fetch-arguments nil)
  '(package-selected-packages
    (quote
-
-    (swiper ivy ido-vertical-mode company elfeed ac-emacs-eclim company-emacs-eclim eclim avy which-key zenburn-theme magit))))
+    (magit ido-vertical-mode company ac-emacs-eclim company-emacs-eclim eclim avy which-key zenburn-theme))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
