@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION=4.9.74
-KVERSION=31
+VERSION=4.14.97
+KVERSION=47
 
 case $1 in
     dk)	
@@ -10,6 +10,11 @@ case $1 in
 	wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION}.tar.xz
 	tar xf linux-${VERSION}.tar.xz
 	rm linux-${VERSION}.tar.xz
+	;;
+    ik)
+	echo "install kernel..."
+	cd /mnt
+	sudo dpkg -i linux-headers-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-image-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-libc-dev_${KVERSION}_amd64.deb
 	;;
     bx)
 	echo "build x86 kernel ${VERSION}-${KVERSION}"
@@ -76,6 +81,9 @@ case $1 in
     vnc)
 	vncserver -geometry 1920x1080 -depth 16 :40
 	;;
+    zero)
+	cat /dev/zero > file.zero ; sync ; rm file.zero
+	;;
     *)
 	echo "Unknown command: $1"
 	echo "  dk - download kernel"
@@ -84,6 +92,7 @@ case $1 in
 	echo "  be - build emacs"
 	echo "  bt - build tvheadend"
 	echo "  dl - dpkg list (sorted by size)"
+	echo "  zero-set unused space to zeros"
 	echo "  vnc- start VNC server"
 	;;
 esac
