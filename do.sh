@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION=4.9.74
-KVERSION=31
+VERSION=4.14.97
+KVERSION=44
 
 case $1 in
     dk)	
@@ -10,6 +10,9 @@ case $1 in
 	wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION}.tar.xz
 	tar xf linux-${VERSION}.tar.xz
 	rm linux-${VERSION}.tar.xz
+	cp /boot/config-$(uname -r) linux-${VERSION}
+	cd linux-${VERSION}
+	make oldconfig
 	;;
     bx)
 	echo "build x86 kernel ${VERSION}-${KVERSION}"
@@ -73,8 +76,12 @@ case $1 in
 	echo "dpkg list"
 	dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
 	;;
-    vnc)
+    vn)
 	vncserver -geometry 1920x1080 -depth 16 :40
+	;;
+    ec)
+	Xvfb :1 -screen 0 1024x768x24&
+	DISPLAY=:1 /mnt/eclipse/eclimd
 	;;
     *)
 	echo "Unknown command: $1"
@@ -84,7 +91,8 @@ case $1 in
 	echo "  be - build emacs"
 	echo "  bt - build tvheadend"
 	echo "  dl - dpkg list (sorted by size)"
-	echo "  vnc- start VNC server"
+	echo "  vn - start VNC server"
+	echo "  ec - start eclim server"
 	;;
 esac
 
