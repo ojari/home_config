@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION=4.14.97
-KVERSION=44
+KVERSION=47
 
 case $1 in
     dk)	
@@ -13,6 +13,11 @@ case $1 in
 	cp /boot/config-$(uname -r) linux-${VERSION}
 	cd linux-${VERSION}
 	make oldconfig
+	;;
+    ik)
+	echo "install kernel..."
+	cd /mnt
+	sudo dpkg -i linux-headers-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-image-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-libc-dev_${KVERSION}_amd64.deb
 	;;
     bx)
 	echo "build x86 kernel ${VERSION}-${KVERSION}"
@@ -83,6 +88,9 @@ case $1 in
 	Xvfb :1 -screen 0 1024x768x24&
 	DISPLAY=:1 /mnt/eclipse/eclimd
 	;;
+    zero)
+	cat /dev/zero > file.zero ; sync ; rm file.zero
+	;;
     *)
 	echo "Unknown command: $1"
 	echo "  dk - download kernel"
@@ -93,6 +101,7 @@ case $1 in
 	echo "  dl - dpkg list (sorted by size)"
 	echo "  vn - start VNC server"
 	echo "  ec - start eclim server"
+	echo "  zero-set unused space to zeros"
 	;;
 esac
 
