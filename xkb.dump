@@ -200,45 +200,6 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <META> = 205;
     <SUPR> = 206;
     <HYPR> = 207;
-    <I208> = 208;
-    <I209> = 209;
-    <I210> = 210;
-    <I211> = 211;
-    <I212> = 212;
-    <I213> = 213;
-    <I214> = 214;
-    <I215> = 215;
-    <I216> = 216;
-    <I217> = 217;
-    <I218> = 218;
-    <I219> = 219;
-    <I220> = 220;
-    <I221> = 221;
-    <I222> = 222;
-    <I223> = 223;
-    <I224> = 224;
-    <I225> = 225;
-    <I226> = 226;
-    <I227> = 227;
-    <I228> = 228;
-    <I229> = 229;
-    <I230> = 230;
-    <I231> = 231;
-    <I232> = 232;
-    <I233> = 233;
-    <I234> = 234;
-    <I235> = 235;
-    <I236> = 236;
-    <I237> = 237;
-    <I238> = 238;
-    <I239> = 239;
-    <I240> = 240;
-    <I241> = 241;
-    <I242> = 242;
-    <I243> = 243;
-    <I244> = 244;
-    <I245> = 245;
-    <I246> = 246;
     indicator 1 = "Caps Lock";
     indicator 2 = "Num Lock";
     indicator 3 = "Scroll Lock";
@@ -1217,7 +1178,7 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         symbols[Group1]= [               q,               Q,               q,               Q ] };
     key <AD02> {
         type= "FOUR_LEVEL_ALPHABETIC",
-        symbols[Group1]= [               w,               W,               w,               W ] };
+        symbols[Group1]= [               w,               W,      dead_circumflex,          W ] };
     key <AD03> {
         type= "FOUR_LEVEL_SEMIALPHABETIC",
         symbols[Group1]= [               e,               E,        EuroSign,        NoSymbol ] };
@@ -1226,7 +1187,7 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         symbols[Group1]= [               r,               R,               r,               R ] };
     key <AD05> {
         type= "FOUR_LEVEL_ALPHABETIC",
-        symbols[Group1]= [               t,               T,      dead_tilde,           THORN ] };
+        symbols[Group1]= [               t,               T,      asciitilde,           THORN ] };
     key <AD06> {
         type= "FOUR_LEVEL_ALPHABETIC",
         symbols[Group1]= [               y,               Y,               y,               Y ] };
@@ -1541,40 +1502,6 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
     key <META> {         [        NoSymbol,          Meta_L ] };
     key <SUPR> {         [        NoSymbol,         Super_L ] };
     key <HYPR> {         [        NoSymbol,         Hyper_L ] };
-    key <I208> {         [   XF86AudioPlay ] };
-    key <I209> {         [  XF86AudioPause ] };
-    key <I210> {         [     XF86Launch3 ] };
-    key <I211> {         [     XF86Launch4 ] };
-    key <I212> {         [     XF86LaunchB ] };
-    key <I213> {         [     XF86Suspend ] };
-    key <I214> {         [       XF86Close ] };
-    key <I215> {         [   XF86AudioPlay ] };
-    key <I216> {         [ XF86AudioForward ] };
-    key <I218> {         [           Print ] };
-    key <I220> {         [      XF86WebCam ] };
-    key <I223> {         [        XF86Mail ] };
-    key <I224> {         [   XF86Messenger ] };
-    key <I225> {         [      XF86Search ] };
-    key <I226> {         [          XF86Go ] };
-    key <I227> {         [     XF86Finance ] };
-    key <I228> {         [        XF86Game ] };
-    key <I229> {         [        XF86Shop ] };
-    key <I231> {         [          Cancel ] };
-    key <I232> {         [ XF86MonBrightnessDown ] };
-    key <I233> {         [ XF86MonBrightnessUp ] };
-    key <I234> {         [  XF86AudioMedia ] };
-    key <I235> {         [     XF86Display ] };
-    key <I236> {         [ XF86KbdLightOnOff ] };
-    key <I237> {         [ XF86KbdBrightnessDown ] };
-    key <I238> {         [ XF86KbdBrightnessUp ] };
-    key <I239> {         [        XF86Send ] };
-    key <I240> {         [       XF86Reply ] };
-    key <I241> {         [ XF86MailForward ] };
-    key <I242> {         [        XF86Save ] };
-    key <I243> {         [   XF86Documents ] };
-    key <I244> {         [     XF86Battery ] };
-    key <I245> {         [   XF86Bluetooth ] };
-    key <I246> {         [        XF86WLAN ] };
     modifier_map Control { <LCTL> };
     modifier_map Shift { <LFSH> };
     modifier_map Shift { <RTSH> };
