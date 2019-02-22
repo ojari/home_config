@@ -1,12 +1,12 @@
 #!/bin/bash
 
 VERSION=4.14.97
-KVERSION=47
+KVERSION=48
 
 case $1 in
-    dk)	
+    dk) # download kernel
 	echo "download kernel..." 
-	cd /mnt
+	cd /mnt/src
 	wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION}.tar.xz
 	tar xf linux-${VERSION}.tar.xz
 	rm linux-${VERSION}.tar.xz
@@ -14,14 +14,14 @@ case $1 in
 	cd linux-${VERSION}
 	make oldconfig
 	;;
-    ik)
+    ik) # install kernel
 	echo "install kernel..."
-	cd /mnt
+	cd /mnt/src
 	sudo dpkg -i linux-headers-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-image-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-libc-dev_${KVERSION}_amd64.deb
 	;;
-    bx)
+    bx) # build x86 kernel
 	echo "build x86 kernel ${VERSION}-${KVERSION}"
-	cd /mnt/linux-${VERSION}
+	cd /mnt/src/linux-${VERSION}
 
 	make nconfig
 	cp .config /home/jari/config_${KVERSION}
@@ -30,11 +30,11 @@ case $1 in
 	#fakeroot make-kpkg -j3 --initrd --append-to-version=-j${VERSION} --revision=${VERSION} kernel_image kernel_headers
 
 	make clean
-	make -j2 KDEB_PKGVERSION=${KVERSION} LOCALVERSION=.j${KVERSION} bindeb-pkg
+	make -j4 KDEB_PKGVERSION=${KVERSION} LOCALVERSION=.j${KVERSION} bindeb-pkg
 	;;
-    br)
+    br) # build raspberry pi kernel
 	echo "build RPI kernel"
-	cd /mnt/linux-${VERSION}
+	cd /mnt/src/linux-${VERSION}
 
 	#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- multi_v7_defconfig
 
@@ -43,8 +43,8 @@ case $1 in
     
 	make -j3 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 	;;
-    be)
-	cd /mnt/work/emacs-25.3
+    be) # build emacs
+	cd /mnt/src/emacs-25.3
 	./configure --prefix=/opt -q \
 		    --enable-silent-rules \
 		    --without-selinux \
@@ -52,8 +52,8 @@ case $1 in
 		    --disable-acl
 	make
 	;;
-    bt)
-	cd /mnt/work/tvheadend-4.2.1
+    bt) # build tvheadend
+	cd /mnt/src/tvheadend-4.2.1
 	./configure --prefix=/opt \
 		    --disable-satip_server \
 		    --disable-satip_client \
@@ -77,31 +77,29 @@ case $1 in
 		    --disable-libav
 	make
 	;;
-    dl)
+    dl) # debian package list by size
 	echo "dpkg list"
 	dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
 	;;
-    vn)
+    vn) # start vnc server
 	vncserver -geometry 1920x1080 -depth 16 :40
 	;;
-    ec)
+    ec) # start eclim server
 	Xvfb :1 -screen 0 1024x768x24&
 	DISPLAY=:1 /mnt/eclipse/eclimd
 	;;
-    zero)
+    ze) # set unused space to zeros
 	cat /dev/zero > file.zero ; sync ; rm file.zero
+	;;
+    xk) # xorg keyboard setting
+	echo "xorg keyboard"
+	setxkbmap -option caps:ctrl_modifier
+	#xkbcomp xkb.dump $DISPLAY
 	;;
     *)
 	echo "Unknown command: $1"
-	echo "  dk - download kernel"
-	echo "  bx - build X86 kernel"
-	echo "  br - build RPI kernel"
-	echo "  be - build emacs"
-	echo "  bt - build tvheadend"
-	echo "  dl - dpkg list (sorted by size)"
-	echo "  vn - start VNC server"
-	echo "  ec - start eclim server"
-	echo "  zero-set unused space to zeros"
+        # show usage
+	grep "\w) #" do.sh | head --lines=-1 | sed 's/) #/ -/' | sort
 	;;
 esac
 
