@@ -64,20 +64,10 @@
 (ido-everywhere t)
 (ido-vertical-mode t)
 (setq ido-enable-flex-matching t)
-;;(ivy-mode)
 
 (which-key-mode)
 
-(setq eclim-executable "/mnt/eclipse/plugins/org.eclim_2.7.2/bin/eclim")
-
-(setenv "PATH" (concat "/mnt/bin/sbt/bin:" (getenv "PATH")))
-(setq ensime-sbt-command "/mnt/bin/sbt/bin/sbt"
-      sbt:program-name   "/mnt/bin/sbt/bin/sbt")
-
-;(use-package ensime
-;	     :ensure t)
-
-
+(load-library "~/template.el")
 
 (add-hook 'c-mode-hook
           '(lambda ()
