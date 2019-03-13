@@ -96,6 +96,11 @@ case $1 in
 	setxkbmap -option caps:ctrl_modifier
 	#xkbcomp xkb.dump $DISPLAY
 	;;
+    clean) # clean up system
+	rm     /usr/share/doc/*/changelog.gz
+	rm     /usr/share/doc/*/changelog.Debian.gz
+	rm     /urs/share/doc/*/copyright
+	;;
     *)
 	echo "Unknown command: $1"
         # show usage
