@@ -103,6 +103,11 @@ case $1 in
 	/usr/bin/vmware-user-suid-wrapper
 	export DOTNET_CLI_TELEMETRY_OPTOUT true
 	;;
+    clean) # clean up system
+	rm     /usr/share/doc/*/changelog.gz
+	rm     /usr/share/doc/*/changelog.Debian.gz
+	rm     /urs/share/doc/*/copyright
+	;;
     *)
 	echo "Unknown command: $1"
         # show usage
