@@ -1,5 +1,8 @@
 xterm*savelines: 4096
-xterm*faceName: DejaVu Sans Mono:size=12:antialias=true
+xterm*metaSendsEscape: true
+xterm*eightBitInput: false
+;xterm*faceName: DejaVu Sans Mono:size=12:antialias=true
+xterm*faceName: Hack:size=12:antialias=true
 xterm*rightScrollBar: true
 xterm*ScrollBar: true
 ;xterm*font: *-fixed-*-*-*-18-*

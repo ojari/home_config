@@ -6,6 +6,9 @@ alias ll="ls -lAh"
 alias du1="du --max-depth=1"
 alias ta="tmux attach"
 alias grep="grep --color"
+alias bb="bitbake"
+alias emacs=/opt/bin/emacs
+alias e=/opt/bin/emacs
 
 if [ "$OS" == "Windows_NT" ];
 then

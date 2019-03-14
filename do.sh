@@ -96,6 +96,13 @@ case $1 in
 	setxkbmap -option caps:ctrl_modifier
 	#xkbcomp xkb.dump $DISPLAY
 	;;
+    vm) # initialize vmware
+	xrdb -merge .Xresources
+	setxkbmap -option caps:ctrl_modifier
+	xkbcomp xkb.dump $DISPLAY
+	/usr/bin/vmware-user-suid-wrapper
+	export DOTNET_CLI_TELEMETRY_OPTOUT true
+	;;
     *)
 	echo "Unknown command: $1"
         # show usage
