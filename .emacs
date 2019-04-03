@@ -20,6 +20,7 @@
 
 (setq inhibit-startup-screen t
       visible-bell 1
+      system-time-locale "fi"
       frame-title-format "emacs - %b"
       default-frame-alist '((top . 0)
 			    (left . 0)
@@ -156,8 +157,8 @@
    (dot . t)
    (C . t)))
 
-(setq org-plantuml-jar-path
-      (expand-file-name "~/plantuml.jar"))
+(setq org-plantuml-jar-path (expand-file-name "~/plantuml.jar")
+      org-time-stamp-custom-formats '("<%m/%d/%y %a>" . "<%d/%m %a %H:%M>"))
 
 (defun my-org-confirm-babel-evaluate (lang body)
   (not (string= lang "plantuml")))  ; don't ask for plantuml
