@@ -7,8 +7,8 @@ alias du1="du --max-depth=1"
 alias ta="tmux attach"
 alias grep="grep --color"
 alias bb="bitbake"
-alias emacs=/opt/bin/emacs
-alias e=/opt/bin/emacs
+alias e=emacs
+alias ec=emacsclient
 
 if [ "$OS" == "Windows_NT" ];
 then
@@ -22,10 +22,10 @@ else
     alias p="python3"
     alias m=make
     alias n="node"
-    alias e="/usr/bin/emacs"
     
-    RUST_SRC_PATH=/mnt/src/rust-master/src
-    PATH="$PATH:/opt/rust/bin:/mnt/bin/gcc-arm/bin"
+    #RUST_SRC_PATH=/mnt/src/rust-master/src
+    PATH="$PATH:/opt/bin:/mnt/bin/gcc-arm/bin"
+    export PATH
 fi
 
 # if running bash

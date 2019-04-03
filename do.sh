@@ -81,6 +81,10 @@ case $1 in
 	echo "dpkg list"
 	dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
 	;;
+    du) # debian upgrade
+	sudo apt update
+	sudo apt upgrade
+	;;
     vn) # start vnc server
 	vncserver -geometry 1920x1080 -depth 16 :40
 	;;

@@ -1,3 +1,4 @@
+(global-set-key [f10] 'server-edit)
 (global-set-key [f11] 'kill-this-buffer)
 (global-set-key [f12] 'magit-status)
 
@@ -62,14 +63,15 @@
 (define-key my-jmenu "c" 'avy-copy-line)
 (define-key my-jmenu "d" 'arm-gdb)
 (define-key my-jmenu "e" 'elfeed)
-(define-key my-jmenu "f" 'eclim-problems-correct)
+;;(define-key my-jmenu "f" 'eclim-problems-correct)
+(define-key my-jmenu "f" 'ido-imenu-anywhere)
 (define-key my-jmenu "g" 'magit-status)
 (define-key my-jmenu "i" 'ido-switch-buffer)
 (define-key my-jmenu "j" 'ido-m-x)
 ;;(define-key my-jmenu "j" 'execute-extended-command)
 (define-key my-jmenu "m" 'my-compile)
 (define-key my-jmenu "n" 'ibuffer)
-(define-key my-jmenu "p" 'eclim-project-build)
+;;(define-key my-jmenu "p" 'eclim-project-build)
 (define-key my-jmenu "r" 'lgrep)
 (define-key my-jmenu "v" 'avy-move-line)
 

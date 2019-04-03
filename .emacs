@@ -2,14 +2,13 @@
 (menu-bar-mode -1)
 (if window-system
     (progn
+      (setq tramp-default-method "plink")
       (tool-bar-mode -1))
   (progn
     (xterm-mouse-mode)))
 
 
 (setq gdb-many-windows nil)
-
-(setq tramp-default-method "plink")
 
 (setq screen-width 120
       screen-height 55)
@@ -210,7 +209,7 @@
  '(magit-fetch-arguments nil)
  '(package-selected-packages
    (quote
-    (magit ido-vertical-mode company ac-emacs-eclim company-emacs-eclim eclim avy which-key zenburn-theme))))
+    (imenu-anywhere magit ido-vertical-mode avy which-key zenburn-theme))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
