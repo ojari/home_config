@@ -2,11 +2,24 @@
 
 VERSION=4.14.97
 KVERSION=48
+export GTK2_RC_FILES=/usr/share/themes/Xamarin-Dark/gtk-2.0/gtkrc
 
+SRC_DIR=/mnt/src
+
+#-------------------------------------------------------------------------------
+function cleanup_system {
+    rm /usr/share/doc/*/changelog.gz
+    rm /usr/share/doc/*/changelog.Debian.gz
+    rm /usr/share/doc/*/copyright
+    rm -R /usr/share/locale/{a?,b?,c?,d?,f?,g?,h?,i?,j?,k?,l?}
+    rm -R /usr/share/man/??
+}
+
+#-------------------------------------------------------------------------------
 case $1 in
     dk) # download kernel
 	echo "download kernel..." 
-	cd /mnt/src
+	cd ${SRC_DIR}
 	wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION}.tar.xz
 	tar xf linux-${VERSION}.tar.xz
 	rm linux-${VERSION}.tar.xz
@@ -16,15 +29,15 @@ case $1 in
 	;;
     ik) # install kernel
 	echo "install kernel..."
-	cd /mnt/src
+	cd ${SRC_DIR}
 	sudo dpkg -i linux-headers-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-image-${VERSION}.j${KVERSION}_${KVERSION}_amd64.deb linux-libc-dev_${KVERSION}_amd64.deb
 	;;
     bx) # build x86 kernel
 	echo "build x86 kernel ${VERSION}-${KVERSION}"
-	cd /mnt/src/linux-${VERSION}
+	cd ${SRC_DIR}/linux-${VERSION}
 
 	make nconfig
-	cp .config /home/jari/config_${KVERSION}
+	cp .config ${HOME}/config_${KVERSION}
 
 	#make-kpkg clean
 	#fakeroot make-kpkg -j3 --initrd --append-to-version=-j${VERSION} --revision=${VERSION} kernel_image kernel_headers
@@ -34,7 +47,7 @@ case $1 in
 	;;
     br) # build raspberry pi kernel
 	echo "build RPI kernel"
-	cd /mnt/src/linux-${VERSION}
+	cd ${SRC_DIR}/linux-${VERSION}
 
 	#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- multi_v7_defconfig
 
@@ -44,16 +57,21 @@ case $1 in
 	make -j3 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 	;;
     be) # build emacs
-	cd /mnt/src/emacs-25.3
+	cd ${SRC_DIR}/emacs-26.1
 	./configure --prefix=/opt -q \
 		    --enable-silent-rules \
 		    --without-selinux \
 		    --with-sound=no \
+		    --with-x-toolkit=gtk2 \
+		    --with-xpm=no \
+		    --with-gif=no \
+		    --with-tiff=no \
+		    --with-gnutls=no \
 		    --disable-acl
 	make
 	;;
     bt) # build tvheadend
-	cd /mnt/src/tvheadend-4.2.1
+	cd ${SRC_DIR}/tvheadend-4.2.1
 	./configure --prefix=/opt \
 		    --disable-satip_server \
 		    --disable-satip_client \
@@ -108,9 +126,7 @@ case $1 in
 	export DOTNET_CLI_TELEMETRY_OPTOUT true
 	;;
     clean) # clean up system
-	rm     /usr/share/doc/*/changelog.gz
-	rm     /usr/share/doc/*/changelog.Debian.gz
-	rm     /urs/share/doc/*/copyright
+	cleanup_system
 	;;
     *)
 	echo "Unknown command: $1"
