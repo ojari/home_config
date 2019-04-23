@@ -85,6 +85,13 @@ case $1 in
 	sudo apt update
 	sudo apt upgrade
 	;;
+    ds) # debian setup
+        apt install emacs25 xterm wmaker xserver-xorg xinit \
+	    open-vm-tools-dkms open-vm-tools-desktop \
+	    deborphan ncdu htop libncurses5-dev dialog \
+	    x11-xserver-utils sudo tmux picocom \
+	    --no-install-recommends
+        ;; 
     vn) # start vnc server
 	vncserver -geometry 1920x1080 -depth 16 :40
 	;;
