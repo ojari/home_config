@@ -50,7 +50,7 @@
   LTCMaximizeKey = None;
   LargeDisplayFont = "Trebuchet MS,sans serif:pixelsize=24";
   LastWorkspaceKey = None;
-  MaximusKey = "Control+Shift+Home";
+  MaximusKey = "Control+Shift+F";
   MenuDisabledColor = "#999999";
   MenuTextBack = (hgradient, "rgb:50/5a/5e", "rgb:20/2a/2e");
   MenuTextColor = "#bfbfbf";
@@ -95,8 +95,8 @@
   RaiseAppIconsWhenBouncing = NO;
   ResizeIncrement = 0;
   ResizebarBack = (solid, "rgb:4f/4f/4f");
-  RootMenuKey = "Shift+F12";
-  RunKey = None;
+  RootMenuKey = "Control+Shift+M";
+  RunKey = "Control+Shift+R";
   ScreenSwitchKey = None;
   ShowClipTitle = YES;
   SingleClickLaunch = NO;
