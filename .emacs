@@ -17,6 +17,8 @@
     (setq screen-width 90
 	  screen-height 60))
 
+(require 'ls-lisp)
+
 (setq inhibit-startup-screen t
       visible-bell 1
       system-time-locale "fi"
@@ -25,7 +27,7 @@
 			    (left . 0)
 			    (width . 120)
 			    (height . screen-height)
-			    (font . "-unknown-DejaVu Sans Mono-normal-normal-normal-*-17-*-*-*-m-0-iso10646-1"))
+			    (font . "-unknown-Hack-normal-normal-normal-*-16-*-*-*-m-0-iso10646-1"))
       w32-get-true-file-attributes nil
       tab-stop-list (number-sequence 4 200 4)
       tab-width 4
@@ -34,6 +36,8 @@
       ls-lisp-dirs-first t
       ls-lisp-ignore-case t
       ls-lisp-verbosity nil
+      ls-lisp-use-insert-directory-program nil
+      calendar-week-start-day 1
       )
 
 ;; Keyboard mappings
@@ -103,7 +107,8 @@
 (defun ido-bookmarks ()
   (interactive)
   (let ((bmark (ido-completing-read "Bookmark:" (bookmark-all-names) nil t)))
-    (message (bookmark-get-filename bmark))))
+    (bookmark-jump bmark)
+    ))
 
 (defun ido-m-x ()
   (interactive)
@@ -165,6 +170,20 @@
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
 
 ;;------------------------------------------------------------------------------
+;; week numbers to calendar
+
+(copy-face font-lock-constant-face 'calendar-iso-week-face)
+(set-face-attribute 'calendar-iso-week-face nil
+                    :height 0.6)
+(setq calendar-intermonth-text
+      '(propertize
+        (format "%2d"
+                (car
+                 (calendar-iso-from-absolute
+                  (calendar-absolute-from-gregorian (list month day year)))))
+        'font-lock-face 'calendar-iso-week-face))
+
+;;------------------------------------------------------------------------------
 (defun mbed-flash ()
   (interactive)
   (copy-file "BUILD/blinky.bin" "D:/"))
@@ -205,11 +224,12 @@
    (quote
     (".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class" "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo")))
  '(grep-highlight-matches t)
+ '(ls-lisp-verbosity nil)
  '(magit-diff-arguments (quote ("--stat" "--no-ext-diff" "-w")))
  '(magit-fetch-arguments nil)
  '(package-selected-packages
    (quote
-    (imenu-anywhere magit ido-vertical-mode avy which-key zenburn-theme))))
+    (csharp-mode elfeed imenu-anywhere magit ido-vertical-mode avy which-key))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
