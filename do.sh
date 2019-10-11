@@ -123,7 +123,7 @@ case $1 in
     xk) # xorg keyboard setting
 	echo "xorg keyboard"
 	setxkbmap -option caps:ctrl_modifier
-	#xkbcomp xkb.dump $DISPLAY
+	xkbcomp xkb.dump $DISPLAY
 	;;
     vm) # initialize vmware
 	xrdb -merge .Xresources
@@ -138,7 +138,7 @@ case $1 in
     *)
 	echo "Unknown command: $1"
         # show usage
-	grep "\w) #" do.sh | head --lines=-1 | sed 's/) #/ -/' | sort
+	grep "\w) #" ~/do.sh | head --lines=-1 | sed 's/) #/ -/' | sort
 	;;
 esac
 
