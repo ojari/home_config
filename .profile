@@ -1,3 +1,4 @@
+
 #!/bin/sh
 
 alias ls="ls --color=always --group-directories-first"
@@ -9,6 +10,8 @@ alias grep="grep --color"
 alias bb="bitbake"
 alias e=emacs
 alias ec=emacsclient
+alias dn=dotnet
+alias dnr="dotnet run"
 alias ems="emacs -nw --eval '(progn (magit-status) (delete-other-windows))'"
 
 edf ()
