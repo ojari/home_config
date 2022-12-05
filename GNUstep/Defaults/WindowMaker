@@ -24,7 +24,7 @@
   DragMaximizedWindow = Move;
   EdgeResistance = 28;
   EnableWorkspacePager = NO;
-  FTitleBack = (solid, "rgb:3f/3f/3f");
+  FTitleBack = (hgradient, "rgb:3f/3f/3f", "rgb:5f/5f/5f");
   FTitleColor = "#cfcf00";
   FrameBorderColor = "#000000";
   FrameFocusedBorderColor = "#3f3f3f";
@@ -52,7 +52,7 @@
   LastWorkspaceKey = None;
   MaximusKey = "Control+Shift+F";
   MenuDisabledColor = "#999999";
-  MenuTextBack = (hgradient, "rgb:50/5a/5e", "rgb:20/2a/2e");
+  MenuTextBack = (hgradient, "rgb:40/5a/5e", "rgb:20/2a/2e");
   MenuTextColor = "#bfbfbf";
   MenuTextFont = "Hack:slant=0:weight=200:width=100:pixelsize=12";
   MenuTitleBack = (hgradient, "rgb:3f/3f/3f", black);
@@ -105,7 +105,7 @@
   SnapEdgeDetect = 1;
   SnapToTopMaximizesFullscreen = NO;
   THMaximizeKey = "Control+Shift+Up";
-  TitleJustify = center;
+  TitleJustify = left;
   ToggleKbdModeKey = None;
   UTitleBack = (solid, "rgb:3f/3f/3f");
   UTitleColor = "#909090";
@@ -125,7 +125,7 @@
   WindowShortcut9Key = None;
   WindowSnapping = NO;
   WindowTitleFont = "Hack:slant=0:weight=200:width=100:pixelsize=10";
-  WorkspaceBack = (solid, "#333333");
+  WorkspaceBack = (vgradient, "rgb:50/50/50", "rgb:33/33/33");
   WorkspaceMapKey = None;
   WorkspaceNameDisplayPosition = center;
   WrapMenus = YES;
