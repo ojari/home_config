@@ -3,6 +3,8 @@
 
 Write-Host "profile.ps1..."
 
+$repos = @(".")
+
 function prompt {
     $dir = (Get-Location).Path
     $dir = $dir.Replace("/home/jari/yocto/applications", "[A]")
@@ -12,6 +14,30 @@ function prompt {
     Write-Host $dir -ForegroundColor Cyan -NoNewline
     Write-Host (" [" + $(Get-GitStatus).Branch + "] ") -ForegroundColor Green -NoNewline
     return "> "
+}
+
+# Git Pull All
+function gpa {
+    $old_location = Get-Location
+
+    foreach ($repo in $repos) {
+        Write-Host "----------------------- $repo"
+        Set-Location $repo
+        git pull
+    }
+    Set-Location $old_location
+}
+
+# Git Status All
+function gsa {
+    $old_location = Get-Location
+
+    foreach ($repo in $repos) {
+        Write-Host "----------------------- $repo"
+        Set-Location $repo
+        git status
+    }
+    Set-Location $old_location
 }
 
 function rpi-log() {
@@ -54,6 +80,16 @@ function git-sync1 {
 
 function git-sync2 {
     git push --force-with-lease
+}
+
+# saves changed files from git repository to tar package
+#
+function git-tar-backup {
+    param(
+        [String]$filename
+    )
+    $files = (git status -s)
+    $files.split("\n").substring(3) | tar cf $filename --files-from=-
 }
 
 function git-backup {
