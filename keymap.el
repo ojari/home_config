@@ -58,22 +58,31 @@
 
 (define-prefix-command 'my-jmenu)
 (global-set-key (kbd "C-j") 'my-jmenu)
-(define-key my-jmenu "a" 'avy-goto-char-2)
+;;(define-key my-jmenu "a" 'avy-goto-char-2)
 (define-key my-jmenu "b" 'ido-bookmarks)
-(define-key my-jmenu "c" 'avy-copy-line)
+;;(define-key my-jmenu "c" 'avy-copy-line)
+(define-key my-jmenu "c" 'abb-compile)
 (define-key my-jmenu "d" 'arm-gdb)
-(define-key my-jmenu "e" 'elfeed)
-;;(define-key my-jmenu "f" 'eclim-problems-correct)
-(define-key my-jmenu "f" 'ido-imenu-anywhere)
+;;(define-key my-jmenu "e" 'elfeed)
+;;(define-key my-jmenu "f" 'ido-imenu-anywhere)
+(define-key my-jmenu "f" 'org-roam-node-find)
 (define-key my-jmenu "g" 'magit-status)
 (define-key my-jmenu "i" 'ido-switch-buffer)
 (define-key my-jmenu "j" 'ido-m-x)
+(define-key my-jmenu "k" 'ido-open-org-roam-node)
 ;;(define-key my-jmenu "j" 'execute-extended-command)
 (define-key my-jmenu "m" 'my-compile)
 (define-key my-jmenu "n" 'ibuffer)
 ;;(define-key my-jmenu "p" 'eclim-project-build)
 (define-key my-jmenu "r" 'lgrep)
-(define-key my-jmenu "v" 'avy-move-line)
+(define-key my-jmenu "s" 'org-roam-db-sync)
+(define-key my-jmenu "t" 'eshell)
+;;(define-key my-jmenu "v" 'avy-move-line)
+
+(global-set-key (kbd "C-c n l") 'org-roam-buffer-toggle)  ;; Toggle the Org-roam buffer
+(global-set-key (kbd "C-c n f") 'org-roam-node-find)      ;; Find an Org-roam node
+(global-set-key (kbd "C-c n i") 'org-roam-node-insert)    ;; Insert an Org-roam node
+(global-set-key (kbd "C-c n g") 'org-roam-graph)          ;; Generate the Org-roam graph
 
 ;(global-set-key (kbd "<C-m>") 'newline)
 

@@ -5,3 +5,7 @@
 /.vboxclient-*
 /.xsession-errors
 /.python_history
+/.emacs.d
+/azure_demo
+/az204
+/source
