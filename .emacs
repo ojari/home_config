@@ -8,15 +8,24 @@
     (xterm-mouse-mode)))
 
 
+
+(setq
+  nnmail-spool-file "Z:/backup/.../thunderbird/.../Mail/LocalFolders/InBox"
+  gnus-select-method '(nnml "")
+)
+
 (setq gdb-many-windows nil)
 
 (setq screen-width 120
-      screen-height 55)
+      screen-height 75)
 
 (if (string-equal user-login-name "jari")
     (setq screen-width 90
 	  screen-height 60))
 
+(add-to-list 'load-path "/home/jari")
+(require 'tomelr)
+(require 'ox-hugo)
 (require 'ls-lisp)
 
 (setq inhibit-startup-screen t
@@ -27,7 +36,8 @@
 			    (left . 0)
 			    (width . 120)
 			    (height . screen-height)
-			    (font . "-unknown-Hack-normal-normal-normal-*-16-*-*-*-m-0-iso10646-1"))
+					;(font . "-unknown-Hack-normal-normal-normal-*-16-*-*-*-m-0-iso10646-1"))
+			    (font . "-outline-Fira Code Retina-regular-normal-normal-*-17-*-*-*-c-0-iso8859-1"))
       w32-get-true-file-attributes nil
       tab-stop-list (number-sequence 4 200 4)
       tab-width 4
@@ -52,10 +62,14 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 
 (require 'package)
-;(add-to-list 'package-archives
-;             '("melpa" . "http://melpa.org/packages/") t)
+
+
 (add-to-list 'package-archives
-             '("melpa-stable" . "http://stable.melpa.org/packages/") t)
+             '("melpa" . "http://melpa.org/packages/") t)
+(add-to-list 'package-archives
+	     '("gnu"   . "http://elpa.gnu.org/packages/") t)
+;(add-to-list 'package-archives
+;             '("melpa-stable" . "http://stable.melpa.org/packages/") t)
 
 (package-initialize)
 
@@ -65,9 +79,10 @@
 ;(global-set-key (kbd "C-x C-f") 'helm-find-files)
 
 (ido-mode t)
-(ido-everywhere t)
+;(ido-everywhere t)
 (ido-vertical-mode t)
-(setq ido-enable-flex-matching t)
+(setq ido-enable-flex-matching t
+      ido-everywhere t)
 
 (which-key-mode)
 
@@ -81,6 +96,10 @@
           '(lambda ()
              (c-set-style "stroustrup")))
 
+(add-hook 'org-mode-hook
+	  '(lambda ()
+	     (local-unset-key "C-j")))
+
 ;;------------------------------------------------------------------------------
 (load-theme 'wombat)
 ;(load-theme 'zenburn t)
@@ -89,6 +108,19 @@
 (if (eq system-type 'windows-nt)
     (cd "c:/home"))
 
+;;------------------------------------------------------------------------------
+(defun tunnit ()
+  (interactive)
+  (let ((previous-week (- (string-to-number (format-time-string "%W"))
+			  1))
+	(days '("ma" "ti" "ke" "to" "pe")))
+    (insert (concat "WK" (number-to-string previous-week)))
+    (newline)
+    (dolist (d days nil)
+      (progn
+	(insert (concat " - " d " 7.5"))
+	(newline)))
+    ))
 
 ;;------------------------------------------------------------------------------
 (defun node-repl ()
@@ -118,6 +150,25 @@
      "M-x "
      (all-completions "" obarray 'commandp)))))
 
+(defun org-roam-get-file-by-title (title)
+  "Return the file path of the Org-roam node with the given TITLE."
+  (let ((node (cl-find-if (lambda (n)
+                            (string= title (org-roam-node-title n)))
+                          (org-roam-node-list))))
+    (when node
+      (org-roam-node-file node))))
+
+
+(defun ido-open-org-roam-node ()
+  (interactive)
+  (find-file
+   (org-roam-get-file-by-title
+    (ido-completing-read
+     "Node:"
+     (mapcar #'org-roam-node-title (org-roam-node-list))
+     nil
+     t))))
+
 
 (defun my-compile-parent (path)
   (let ((default-directory (substring path 0 -5)))
@@ -137,16 +188,18 @@
     (byte-compile-file (buffer-file-name)))
    ((equal major-mode 'python-mode)
     (compile (concat "python3 " (buffer-file-name))))
-   (t  (message "unknown mode"))))
+   (t
+    (message "unknown mode")
+    )))
 
 ;;------------------------------------------------------------------------------
 ;; org-mode
 (setq org-publish-project-alist
       '(
 	("github"
-	 :base-directory "~/j-a-r-i.github.io/"
+	 :base-directory "~/ojari.github.io/"
 	 :base-extension "org"
-	 :publishing-directory "~/j-a-r-i.github.io/"
+	 :publishing-directory "~/ojari.github.io/"
 	 :recursive t
 	 :publishing-function org-html-publish-to-html
 	 :headline-levels 4             ; Just the default for this project.
@@ -162,12 +215,31 @@
    (C . t)))
 
 (setq org-plantuml-jar-path (expand-file-name "~/plantuml.jar")
+      org-mobile-directory "/tmp/org-mobile"
       org-time-stamp-custom-formats '("<%m/%d/%y %a>" . "<%d/%m %a %H:%M>"))
 
 (defun my-org-confirm-babel-evaluate (lang body)
   (not (string= lang "plantuml")))  ; don't ask for plantuml
 
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+(setq org-roam-completion-system 'ido
+      org-roam-completion-everywhere t
+      org-roam-directory "~/org-roam")
+
+(setq org-roam-capture-templates
+      '(
+	("a" "abb" plain (file "~/org-roam/abb/templates/stuff.org")
+	 :target (file+head "abb/%<%Y%m%d%H%M%S>-${slug}.org"
+			    "#+title: ${title}\n") :unnarrowed t)
+	("b" "study" plain (file "~/org-roam/study/templates/research.org")
+	 :target (file+head "study/%<%Y%m%d%H%M%S>-${slug}.org"
+			    "#+title: ${title}\n") :unnarrowed t)
+	)
+      )
+;(setq org-roam-node-completion-function
+;      (lambda () (org-roam-completion--ido #'org-roam-node-read)))
+
 
 ;;------------------------------------------------------------------------------
 ;; week numbers to calendar
@@ -205,8 +277,27 @@
     (message "No region active!")))
 
 ;;------------------------------------------------------------------------------
+(load-library "dired")
+(defun dired-ediff-files ()
+  (interactive)
+  (let ((files (dired-get-marked-files))
+        (wnd (current-window-configuration)))
+    (if (= (length files) 2)
+	(progn
+	  (message (car files))
+          (ediff-files (car files)
+		       (cadr files))
+	  (add-hook 'ediff-aft1er-quit-hook-internal
+                    (lambda ()
+                      (setq ediff-after-quit-hook-internal nil)
+                      (set-window-configuration wnd))))
+      (error "no more than 2 files should be marked"))))
+
+(define-key dired-mode-map "e" 'dired-ediff-files)
+
+;;------------------------------------------------------------------------------
+(load-libraru "~/project.el")
 (load-library "~/keymap.el")
-(load-library "~/feed.el")
 
 ;;------------------------------------------------------------------------------
 (custom-set-variables
@@ -217,19 +308,20 @@
  '(browse-url-chrome-program "C:/Program Files (x86)/Google/Chrome/Application/chrome")
  '(browse-url-firefox-program "c:/Program Files/Firefox/firefox")
  '(custom-safe-themes
-   (quote
-    ("8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8" default)))
- '(grep-find-ignored-directories (quote (".src" ".svn" ".git")))
+   '("8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
+     "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
+     default))
+ '(grep-find-ignored-directories '(".src" ".svn" ".git"))
  '(grep-find-ignored-files
-   (quote
-    (".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class" "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo")))
+   '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
+     "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
  '(grep-highlight-matches t)
  '(ls-lisp-verbosity nil)
- '(magit-diff-arguments (quote ("--stat" "--no-ext-diff" "-w")))
+ '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
  '(package-selected-packages
-   (quote
-    (csharp-mode elfeed imenu-anywhere magit ido-vertical-mode avy which-key))))
+   '(avy copilot-chat csharp-mode elfeed flycheck ido-vertical-mode
+	 imenu-anywhere magit org-roam org-roam-ui ox-hugo which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
