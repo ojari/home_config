@@ -50,15 +50,6 @@
       calendar-week-start-day 1
       )
 
-;; Keyboard mappings
-;;
-
-(global-set-key (kbd "M-[ a") 'windmove-up)
-(global-set-key (kbd "M-[ b") 'windmove-down)
-(global-set-key (kbd "M-[ c") 'windmove-right)
-(global-set-key (kbd "M-[ d") 'windmove-left)
-
-
 (fset 'yes-or-no-p 'y-or-n-p)
 
 (require 'package)
@@ -71,22 +62,27 @@
 ;(add-to-list 'package-archives
 ;             '("melpa-stable" . "http://stable.melpa.org/packages/") t)
 
-(package-initialize)
 
-;(require 'helm-config)
-;(global-set-key (kbd "M-x")     'helm-M-x)
-;(global-set-key (kbd "C-x r b") 'helm-filtered-bookmarks)
-;(global-set-key (kbd "C-x C-f") 'helm-find-files)
-
-(ido-mode t)
+;(ido-mode t)
 ;(ido-everywhere t)
-(ido-vertical-mode t)
-(setq ido-enable-flex-matching t
-      ido-everywhere t)
+;;(ido-vertical-mode t)
+;;(setq ido-enable-flex-matching t
+;;      ido-everywhere t)
 
-(which-key-mode)
+(use-package vertico
+  :custom
+  (vertico-count 20)
+  ;;(vertico-resize t)
+  :init
+  (vertico-mode))
 
-(load-library "~/template.el")
+(setq completion-styles '(basic substring partial-completion flex))
+
+(use-package which-key
+  :config
+  (which-key-mode))
+
+;;(load-library "~/template.el")
 
 (add-hook 'c-mode-hook
           '(lambda ()
@@ -96,9 +92,9 @@
           '(lambda ()
              (c-set-style "stroustrup")))
 
-(add-hook 'org-mode-hook
-	  '(lambda ()
-	     (local-unset-key "C-j")))
+;(add-hook 'org-mode-hook
+;	  '(lambda ()
+;	     (local-unset-key "C-j")))
 
 ;;------------------------------------------------------------------------------
 (load-theme 'wombat)
@@ -134,13 +130,13 @@
   (magit-refresh))
 
 
-(load-library "bookmark")
 ;;------------------------------------------------------------------------------
-(defun ido-bookmarks ()
-  (interactive)
-  (let ((bmark (ido-completing-read "Bookmark:" (bookmark-all-names) nil t)))
-    (bookmark-jump bmark)
-    ))
+;; (load-library "bookmark")
+;; (defun ido-bookmarks ()
+;;   (interactive)
+;;   (let ((bmark (ido-completing-read "Bookmark:" (bookmark-all-names) nil t)))
+;;     (bookmark-jump bmark)
+;;     ))
 
 (defun ido-m-x ()
   (interactive)
@@ -158,6 +154,7 @@
     (when node
       (org-roam-node-file node))))
 
+(setq org-roam-buffer-window-parameters '((no-delete-other-windows . t)))
 
 (defun ido-open-org-roam-node ()
   (interactive)
@@ -223,17 +220,17 @@
 
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
 
-(setq org-roam-completion-system 'ido
+(setq org-roam-completion-system 'vertico
       org-roam-completion-everywhere t
       org-roam-directory "~/org-roam")
 
 (setq org-roam-capture-templates
       '(
 	("a" "abb" plain (file "~/org-roam/abb/templates/stuff.org")
-	 :target (file+head "abb/%<%Y%m%d%H%M%S>-${slug}.org"
+	 :target (file+head "abb/%<%Y%m%d>-${slug}.org"
 			    "#+title: ${title}\n") :unnarrowed t)
 	("b" "study" plain (file "~/org-roam/study/templates/research.org")
-	 :target (file+head "study/%<%Y%m%d%H%M%S>-${slug}.org"
+	 :target (file+head "study/%<%Y%m%d>-${slug}.org"
 			    "#+title: ${title}\n") :unnarrowed t)
 	)
       )
@@ -256,14 +253,14 @@
         'font-lock-face 'calendar-iso-week-face))
 
 ;;------------------------------------------------------------------------------
-(defun mbed-flash ()
-  (interactive)
-  (copy-file "BUILD/blinky.bin" "D:/"))
+;; (defun mbed-flash ()
+;;   (interactive)
+;;   (copy-file "BUILD/blinky.bin" "D:/"))
 
-(defun arm-gdb ()
-  (interactive)
-  (setq gdb-many-windows nil)
-  (gdb "/mnt/bin/gcc-arm/bin/arm-none-eabi-gdb -i=mi bin/meas.elf"))
+;; (defun arm-gdb ()
+;;   (interactive)
+;;   (setq gdb-many-windows nil)
+;;   (gdb "/mnt/bin/gcc-arm/bin/arm-none-eabi-gdb -i=mi bin/meas.elf"))
 
 
 (defun my-region-transfer ()
@@ -296,7 +293,7 @@
 (define-key dired-mode-map "e" 'dired-ediff-files)
 
 ;;------------------------------------------------------------------------------
-(load-libraru "~/project.el")
+(load-library "~/project_config.el")
 (load-library "~/keymap.el")
 
 ;;------------------------------------------------------------------------------
@@ -321,7 +318,8 @@
  '(magit-fetch-arguments nil)
  '(package-selected-packages
    '(avy copilot-chat csharp-mode elfeed flycheck ido-vertical-mode
-	 imenu-anywhere magit org-roam org-roam-ui ox-hugo which-key)))
+	 imenu-anywhere magit org-roam org-roam-ui ox-hugo vertico
+	 which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

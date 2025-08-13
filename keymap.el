@@ -49,12 +49,12 @@
 (define-key my-tmenu "p" 'transpose-paragraphs)
 (define-key my-tmenu "s" 'transpose-sentences)
 
-(define-prefix-command 'my-dmenu)
-(global-set-key (kbd "C-d") 'my-dmenu)
-(define-key my-dmenu "d" 'delete-char)
-(define-key my-dmenu "w" 'backward-kill-word)
-(define-key my-dmenu "p" 'backward-kill-paragraph)
-(define-key my-dmenu "s" 'backward-kill-sentence)
+;; (define-prefix-command 'my-dmenu)
+;; (global-set-key (kbd "C-d") 'my-dmenu)
+;; (define-key my-dmenu "d" 'delete-char)
+;; (define-key my-dmenu "w" 'backward-kill-word)
+;; (define-key my-dmenu "p" 'backward-kill-paragraph)
+;; (define-key my-dmenu "s" 'backward-kill-sentence)
 
 (define-prefix-command 'my-jmenu)
 (global-set-key (kbd "C-j") 'my-jmenu)
@@ -79,10 +79,12 @@
 (define-key my-jmenu "t" 'eshell)
 ;;(define-key my-jmenu "v" 'avy-move-line)
 
+(global-set-key (kbd "C-c n f") 'org-roam-node-find)
+(global-set-key (kbd "C-c n g") 'org-roam-ui-open)        ;; Generate the Org-roam graph
 (global-set-key (kbd "C-c n l") 'org-roam-buffer-toggle)  ;; Toggle the Org-roam buffer
-(global-set-key (kbd "C-c n f") 'org-roam-node-find)      ;; Find an Org-roam node
 (global-set-key (kbd "C-c n i") 'org-roam-node-insert)    ;; Insert an Org-roam node
-(global-set-key (kbd "C-c n g") 'org-roam-graph)          ;; Generate the Org-roam graph
+(global-set-key (kbd "C-c n o") 'ido-open-org-roam-node)
+(global-set-key (kbd "C-c n s") 'org-roam-db-sync)
 
 ;(global-set-key (kbd "<C-m>") 'newline)
 
