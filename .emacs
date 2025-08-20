@@ -1,13 +1,13 @@
 (show-paren-mode t)
 (menu-bar-mode -1)
+(set-fringe-mode 10)
 (if window-system
     (progn
       (setq tramp-default-method "plink")
-      (tool-bar-mode -1))
+      (tool-bar-mode -1)
+      (tooltip-mode -1))
   (progn
     (xterm-mouse-mode)))
-
-
 
 (setq
   nnmail-spool-file "Z:/backup/.../thunderbird/.../Mail/LocalFolders/InBox"
@@ -16,28 +16,33 @@
 
 (setq gdb-many-windows nil)
 
-(setq screen-width 120
-      screen-height 75)
+;;(setq screen-width 120
+;;      screen-height 75)
 
-(if (string-equal user-login-name "jari")
-    (setq screen-width 90
-	  screen-height 60))
+;;(if (string-equal user-login-name "jari")
+;;    (setq screen-width 90
+;;	  screen-height 60))
+
+;(set-face-attribute 'default nil :font "Fira Code Retina" :height 120)
+(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono Ret" :height 120)
+;(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono")
 
 (add-to-list 'load-path "/home/jari")
-(require 'tomelr)
-(require 'ox-hugo)
-(require 'ls-lisp)
+;; (require 'tomelr)
+;; (require 'ox-hugo)
+;; (require 'ls-lisp)
 
 (setq inhibit-startup-screen t
       visible-bell 1
       system-time-locale "fi"
       frame-title-format "emacs - %b"
-      default-frame-alist '((top . 0)
-			    (left . 0)
-			    (width . 120)
-			    (height . screen-height)
+      ;;default-frame-alist '((top . 0)
+;;			    (left . 0)
+;;			    (width . 120)
+;;			    (height . screen-height))
 					;(font . "-unknown-Hack-normal-normal-normal-*-16-*-*-*-m-0-iso10646-1"))
-			    (font . "-outline-Fira Code Retina-regular-normal-normal-*-17-*-*-*-c-0-iso8859-1"))
+			    ;;(font . "-outline-Fira Code Retina-regular-normal-normal-*-17-*-*-*-c-0-iso8859-1"))
+      
       w32-get-true-file-attributes nil
       tab-stop-list (number-sequence 4 200 4)
       tab-width 4
@@ -55,12 +60,14 @@
 (require 'package)
 
 
+(setq package-check-signature nil)
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.org/packages/") t)
 (add-to-list 'package-archives
-	     '("gnu"   . "http://elpa.gnu.org/packages/") t)
+	     '("gnu"   . "https://elpa.gnu.org/packages/") t)
 ;(add-to-list 'package-archives
 ;             '("melpa-stable" . "http://stable.melpa.org/packages/") t)
+(package-initialize)
 
 
 ;(ido-mode t)
@@ -72,17 +79,56 @@
 (use-package vertico
   :custom
   (vertico-count 20)
+  (completion-ignore-case t)
   ;;(vertico-resize t)
+  :bind
+  (("C-c n f" . org-roam-node-find)
+   ("C-c n g" . org-roam-ui-open)        ;; Generate the Org-roam graph
+   ("C-c n l" . org-roam-buffer-toggle)  ;; Toggle the Org-roam buffer
+   ("C-c n i" . org-roam-node-insert)    ;; Insert an Org-roam node
+   ;; ("C-c n o" . ido-open-org-roam-node)
+   ("C-c n s" . org-roam-db-sync))
+  
   :init
   (vertico-mode))
 
-(setq completion-styles '(basic substring partial-completion flex))
+;; (setq completion-styles '(basic substring partial-completion flex)
+;;       completion-ignore-case t
+;;       read-buffer-completion-ignore-case t
+;;       read-file-name-completion-ignore-case t)
+
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package doom-modeline
+  :ensure t
+  :init
+  (doom-modeline-mode 1)
+  :custom
+  ((doom-modeline-height 15)
+   (doom-modeline-icon t)))
+
+(use-package projectile
+  :ensure t
+  :init
+  (projectile-mode +1)
+  :config
+  ;; Optionally set Projectile to use the default project search method
+  (setq projectile-completion-system 'default)
+  ;; Optionally define a keymap prefix for Projectile commands
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
+
+(setq vertico-sort-function
+      (lambda (candidates)
+        (sort candidates #'string<)))
 
 (use-package which-key
   :config
   (which-key-mode))
-
-;;(load-library "~/template.el")
 
 (add-hook 'c-mode-hook
           '(lambda ()
@@ -202,6 +248,15 @@
 	 :headline-levels 4             ; Just the default for this project.
 	 :auto-preamble t
 	 )
+	("org-roam"
+	 :base-directory "~/org-roam/"
+	 :base-extension "org"
+	 :publishing-directory "~/tmp/"
+	 :recursive t
+	 :publishing-function org-html-publish-to-html
+	 :headline-levels 4             ; Just the default for this project.
+	 :auto-preamble t
+	 )
 	))
 
 (org-babel-do-load-languages
@@ -229,8 +284,14 @@
 	("a" "abb" plain (file "~/org-roam/abb/templates/stuff.org")
 	 :target (file+head "abb/%<%Y%m%d>-${slug}.org"
 			    "#+title: ${title}\n") :unnarrowed t)
-	("b" "study" plain (file "~/org-roam/study/templates/research.org")
+	("b" "study" plain (file "~/org-roam/templates/learn.org")
 	 :target (file+head "study/%<%Y%m%d>-${slug}.org"
+			    "#+title: ${title}\n") :unnarrowed t)
+	("m" "my" plain (file "~/org-roam/templates/my.org")
+	 :target (file+head "my/%<%Y%m%d>-${slug}.org"
+			    "#+title: ${title}\n") :unnarrowed t)
+	("s" "sport" plain (file "~/org-roam/templates/sport.org")
+	 :target (file+head "sport/%<%Y%m%d>-${slug}.org"
 			    "#+title: ${title}\n") :unnarrowed t)
 	)
       )
@@ -316,10 +377,11 @@
  '(ls-lisp-verbosity nil)
  '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
+ '(org-export-with-broken-links 'mark)
  '(package-selected-packages
-   '(avy copilot-chat csharp-mode elfeed flycheck ido-vertical-mode
-	 imenu-anywhere magit org-roam org-roam-ui ox-hugo vertico
-	 which-key)))
+   '(avy copilot-chat csharp-mode doom-modeline elfeed flycheck
+	 imenu-anywhere magit orderless org-roam org-roam-ui ox-hugo
+	 projectile vertico which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

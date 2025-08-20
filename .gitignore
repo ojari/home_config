@@ -1,4 +1,8 @@
 *~
+/.elfeed
+/.lesshst
+/.node-red
+/.ssh
 /.bash_history
 /.Xauthority
 /.recently-used
