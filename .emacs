@@ -76,6 +76,12 @@
 ;;(setq ido-enable-flex-matching t
 ;;      ido-everywhere t)
 
+(define-prefix-command 'my-jmenu)
+
+(use-package org-roam
+  :config
+  (define-key org-mode-map (kbd "C-j") 'my-jmenu))
+
 (use-package vertico
   :custom
   (vertico-count 20)
