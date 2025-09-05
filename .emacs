@@ -48,11 +48,13 @@
       tab-width 4
       user-full-name "Jari Ojanen"
       make-backup-files nil
+      compilation-scroll-output t
       ls-lisp-dirs-first t
       ls-lisp-ignore-case t
       ls-lisp-verbosity nil
       ls-lisp-use-insert-directory-program nil
       calendar-week-start-day 1
+      minibuffer-message-timeout 0
       )
 
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -110,6 +112,23 @@
   (completion-category-defaults nil)
   (completion-category-overrides '((file (styles partial-completion)))))
 
+(use-package consult
+  :ensure t
+  :bind
+  (("C-s" . consult-line))
+  ;;:custom
+  ;;(consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --glob '!*.xml' --glob '!*.txt'")
+  )
+
+
+(use-package epa
+  :ensure nil  ;; epa is built-in, so no need to install
+  :config
+  (epa-file-enable)  ;; Enable automatic decryption/encryption of .gpg files
+  (setq epa-pinentry-mode 'loopback)  ;; Optional: use Emacs minibuffer for passphrase
+)
+
+
 (use-package doom-modeline
   :ensure t
   :init
@@ -118,10 +137,33 @@
   ((doom-modeline-height 15)
    (doom-modeline-icon t)))
 
+
+(use-package doom-themes
+  :ensure t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme 'wombat t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+
 (use-package projectile
   :ensure t
   :init
   (projectile-mode +1)
+  :custom
+  (projectile-generic-command "rg --files --hidden")
+  (projectile-indexing-method 'alien)
+  (projectile-enable-caching t)
   :config
   ;; Optionally set Projectile to use the default project search method
   (setq projectile-completion-system 'default)
@@ -149,26 +191,12 @@
 ;	     (local-unset-key "C-j")))
 
 ;;------------------------------------------------------------------------------
-(load-theme 'wombat)
+;(load-theme 'wombat)
 ;(load-theme 'zenburn t)
 ;(load-theme 'tango-dark)
 
 (if (eq system-type 'windows-nt)
     (cd "c:/home"))
-
-;;------------------------------------------------------------------------------
-(defun tunnit ()
-  (interactive)
-  (let ((previous-week (- (string-to-number (format-time-string "%W"))
-			  1))
-	(days '("ma" "ti" "ke" "to" "pe")))
-    (insert (concat "WK" (number-to-string previous-week)))
-    (newline)
-    (dolist (d days nil)
-      (progn
-	(insert (concat " - " d " 7.5"))
-	(newline)))
-    ))
 
 ;;------------------------------------------------------------------------------
 (defun node-repl ()
@@ -182,42 +210,12 @@
   (magit-refresh))
 
 
-;;------------------------------------------------------------------------------
-;; (load-library "bookmark")
-;; (defun ido-bookmarks ()
-;;   (interactive)
-;;   (let ((bmark (ido-completing-read "Bookmark:" (bookmark-all-names) nil t)))
-;;     (bookmark-jump bmark)
-;;     ))
-
-(defun ido-m-x ()
-  (interactive)
-  (call-interactively
-   (intern
-    (ido-completing-read
-     "M-x "
-     (all-completions "" obarray 'commandp)))))
-
-(defun org-roam-get-file-by-title (title)
-  "Return the file path of the Org-roam node with the given TITLE."
-  (let ((node (cl-find-if (lambda (n)
-                            (string= title (org-roam-node-title n)))
-                          (org-roam-node-list))))
-    (when node
-      (org-roam-node-file node))))
-
-(setq org-roam-buffer-window-parameters '((no-delete-other-windows . t)))
-
-(defun ido-open-org-roam-node ()
-  (interactive)
-  (find-file
-   (org-roam-get-file-by-title
-    (ido-completing-read
-     "Node:"
-     (mapcar #'org-roam-node-title (org-roam-node-list))
-     nil
-     t))))
-
+(setq org-roam-buffer-window-parameters '((no-delete-other-windows . t))
+      org-startup-with-inline-images t
+      org-startup-with-latex-preview t
+      )
+(setq org-link-frame-setup
+      '((file . find-file)))  ;; instead of find-file-other-window
 
 (defun my-compile-parent (path)
   (let ((default-directory (substring path 0 -5)))
@@ -274,7 +272,9 @@
 
 (setq org-plantuml-jar-path (expand-file-name "~/plantuml.jar")
       org-mobile-directory "/tmp/org-mobile"
-      org-time-stamp-custom-formats '("<%m/%d/%y %a>" . "<%d/%m %a %H:%M>"))
+      org-time-stamp-custom-formats '("<%m/%d/%y %a>" . "<%d/%m %a %H:%M>")
+      org-agenda-files (directory-files-recursively "~/org-roam/abb" "\\.org$")
+      org-agenda-start-with-clockreport-mode t)
 
 (defun my-org-confirm-babel-evaluate (lang body)
   (not (string= lang "plantuml")))  ; don't ask for plantuml
@@ -287,11 +287,14 @@
 
 (setq org-roam-capture-templates
       '(
-	("a" "abb" plain (file "~/org-roam/abb/templates/stuff.org")
-	 :target (file+head "abb/%<%Y%m%d>-${slug}.org"
+	("a" "abb" plain (file "~/org-roam/templates/abb.org")
+	 :target (file+head "abb/${slug}.org"
 			    "#+title: ${title}\n") :unnarrowed t)
 	("b" "study" plain (file "~/org-roam/templates/learn.org")
 	 :target (file+head "study/%<%Y%m%d>-${slug}.org"
+			    "#+title: ${title}\n") :unnarrowed t)
+	("i" "ai" plain (file "~/org-roam/templates/ai.org")
+	 :target (file+head "ai/${slug}.org"
 			    "#+title: ${title}\n") :unnarrowed t)
 	("m" "my" plain (file "~/org-roam/templates/my.org")
 	 :target (file+head "my/%<%Y%m%d>-${slug}.org"
@@ -372,7 +375,8 @@
  '(browse-url-chrome-program "C:/Program Files (x86)/Google/Chrome/Application/chrome")
  '(browse-url-firefox-program "c:/Program Files/Firefox/firefox")
  '(custom-safe-themes
-   '("8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
+   '("4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
+     "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
      "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
      default))
  '(grep-find-ignored-directories '(".src" ".svn" ".git"))
@@ -385,9 +389,10 @@
  '(magit-fetch-arguments nil)
  '(org-export-with-broken-links 'mark)
  '(package-selected-packages
-   '(avy copilot-chat csharp-mode doom-modeline elfeed flycheck
-	 imenu-anywhere magit orderless org-roam org-roam-ui ox-hugo
-	 projectile vertico which-key)))
+   '(avy consult copilot-chat csharp-mode doom-modeline doom-themes
+	 elfeed flycheck imenu-anywhere magit orderless org-roam
+	 org-roam-ui ox-hugo powershell projectile treemacs vertico
+	 which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

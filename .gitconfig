@@ -1,0 +1,14 @@
+[user]
+	name = Jari Ojanen
+	email = Jari.Ojanen@ch.abb.com
+[difftool "sourcetree"]
+	cmd = '' \"$LOCAL\" \"$REMOTE\"
+[mergetool "sourcetree"]
+	cmd = "'' "
+	trustExitCode = true
+[core]
+	editor = \"C:\\Usr\\VSCode\\bin\\code\" --wait
+
+[alias]
+    co=checkout
+	lg=log --graph --decorate --abbrev-commit --all --oneline	

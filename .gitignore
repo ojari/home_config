@@ -1,5 +1,6 @@
 *~
 /.elfeed
+/.cache
 /.lesshst
 /.node-red
 /.ssh
