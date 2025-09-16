@@ -1,5 +1,6 @@
 (show-paren-mode t)
 (menu-bar-mode -1)
+(tool-bar-mode -1)
 (set-fringe-mode 10)
 (if window-system
     (progn
@@ -24,7 +25,7 @@
 ;;	  screen-height 60))
 
 ;(set-face-attribute 'default nil :font "Fira Code Retina" :height 120)
-(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono Ret" :height 120)
+(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono Ret" :height 110)
 ;(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono")
 
 (add-to-list 'load-path "/home/jari")
@@ -162,7 +163,7 @@
   (projectile-mode +1)
   :custom
   (projectile-generic-command "rg --files --hidden")
-  (projectile-indexing-method 'alien)
+  (projectile-indexing-method 'hybrid)
   (projectile-enable-caching t)
   :config
   ;; Optionally set Projectile to use the default project search method
@@ -212,32 +213,12 @@
 
 (setq org-roam-buffer-window-parameters '((no-delete-other-windows . t))
       org-startup-with-inline-images t
-      org-startup-with-latex-preview t
+      org-startup-with-latex-preview nil
+      org-cycle-hide-drawer-startup t
       )
 (setq org-link-frame-setup
       '((file . find-file)))  ;; instead of find-file-other-window
 
-(defun my-compile-parent (path)
-  (let ((default-directory (substring path 0 -5)))
-    (compile "make -k")))
-
-(defun my-compile ()
-  (interactive)
-  (cond
-   ((equal major-mode 'java-mode) (message "java"))
-   ((equal major-mode 'c-mode)
-    (let ((path (file-name-directory (buffer-file-name))))
-      (if (string-match "/src/$" path)
-	  (my-compile-parent path)
-	(compile "ninja"))))
-   ((equal major-mode 'c++-mode)  (compile "make -k"))
-   ((equal major-mode 'emacs-lisp-mode)
-    (byte-compile-file (buffer-file-name)))
-   ((equal major-mode 'python-mode)
-    (compile (concat "python3 " (buffer-file-name))))
-   (t
-    (message "unknown mode")
-    )))
 
 ;;------------------------------------------------------------------------------
 ;; org-mode
@@ -259,7 +240,13 @@
 	 :recursive t
 	 :publishing-function org-html-publish-to-html
 	 :headline-levels 4             ; Just the default for this project.
-	 :auto-preamble t
+	 :section-numbers nil
+	 :with-author: nil
+	 :with-toc nil
+	 :time-stamp-file nil
+         :html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
+         :html-preamble nil
+         :html-postamble nil
 	 )
 	))
 
@@ -268,13 +255,36 @@
  '(
    (plantuml . t)
    (dot . t)
+   (shell . t)
    (C . t)))
+
+;;(setq org-babel-shell-names '("pwsh"))
+;;(setq shell-file-name "C:/Program Files/PowerShell/7/pwsh.exe")
+
+(setq explicit-shell-file-name shell-file-name)
+
 
 (setq org-plantuml-jar-path (expand-file-name "~/plantuml.jar")
       org-mobile-directory "/tmp/org-mobile"
       org-time-stamp-custom-formats '("<%m/%d/%y %a>" . "<%d/%m %a %H:%M>")
-      org-agenda-files (directory-files-recursively "~/org-roam/abb" "\\.org$")
-      org-agenda-start-with-clockreport-mode t)
+      org-agenda-files (directory-files-recursively "~/org-roam" "\\.org$")
+      org-agenda-start-with-clockreport-mode t
+      org-export-coding-system 'utf-8
+      )
+
+(setq org-agenda-files
+      (let* ((directory "~/org-roam/abb")
+	     (file-list (directory-files-recursively directory "\\.org$")) ; Get all files
+	     (additional-files '("~/org-roam/sport/20250907-grifk.org"
+				 "~/org-roam/my/20250912-schedule.org")))
+	;; Append additional files to the file list
+	(append file-list additional-files)))
+  
+	;; Print the final list of files
+	;; (message "Final file list: %s" file-list))
+	
+
+;;(prefer-coding-system 'utf-8)
 
 (defun my-org-confirm-babel-evaluate (lang body)
   (not (string= lang "plantuml")))  ; don't ask for plantuml
@@ -285,25 +295,6 @@
       org-roam-completion-everywhere t
       org-roam-directory "~/org-roam")
 
-(setq org-roam-capture-templates
-      '(
-	("a" "abb" plain (file "~/org-roam/templates/abb.org")
-	 :target (file+head "abb/${slug}.org"
-			    "#+title: ${title}\n") :unnarrowed t)
-	("b" "study" plain (file "~/org-roam/templates/learn.org")
-	 :target (file+head "study/%<%Y%m%d>-${slug}.org"
-			    "#+title: ${title}\n") :unnarrowed t)
-	("i" "ai" plain (file "~/org-roam/templates/ai.org")
-	 :target (file+head "ai/${slug}.org"
-			    "#+title: ${title}\n") :unnarrowed t)
-	("m" "my" plain (file "~/org-roam/templates/my.org")
-	 :target (file+head "my/%<%Y%m%d>-${slug}.org"
-			    "#+title: ${title}\n") :unnarrowed t)
-	("s" "sport" plain (file "~/org-roam/templates/sport.org")
-	 :target (file+head "sport/%<%Y%m%d>-${slug}.org"
-			    "#+title: ${title}\n") :unnarrowed t)
-	)
-      )
 ;(setq org-roam-node-completion-function
 ;      (lambda () (org-roam-completion--ido #'org-roam-node-read)))
 
@@ -389,10 +380,10 @@
  '(magit-fetch-arguments nil)
  '(org-export-with-broken-links 'mark)
  '(package-selected-packages
-   '(avy consult copilot-chat csharp-mode doom-modeline doom-themes
-	 elfeed flycheck imenu-anywhere magit orderless org-roam
-	 org-roam-ui ox-hugo powershell projectile treemacs vertico
-	 which-key)))
+   '(ace-window avy consult copilot-chat csharp-mode doom-modeline
+		doom-themes elfeed flycheck imenu-anywhere magit
+		orderless org-roam org-roam-ui ox-hugo powershell
+		projectile treemacs vertico which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
