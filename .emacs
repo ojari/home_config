@@ -12,26 +12,13 @@
 
 (setq
   nnmail-spool-file "Z:/backup/.../thunderbird/.../Mail/LocalFolders/InBox"
-  gnus-select-method '(nnml "")
-)
+  gnus-select-method '(nnml ""))
 
 (setq gdb-many-windows nil)
 
-;;(setq screen-width 120
-;;      screen-height 75)
-
-;;(if (string-equal user-login-name "jari")
-;;    (setq screen-width 90
-;;	  screen-height 60))
-
-;(set-face-attribute 'default nil :font "Fira Code Retina" :height 120)
 (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono Ret" :height 110)
-;(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono")
 
 (add-to-list 'load-path "/home/jari")
-;; (require 'tomelr)
-;; (require 'ox-hugo)
-;; (require 'ls-lisp)
 
 (setq inhibit-startup-screen t
       visible-bell 1
@@ -92,6 +79,7 @@
   ;;(vertico-resize t)
   :bind
   (("C-c n f" . org-roam-node-find)
+   ("C-c n a" . org-agenda)
    ("C-c n g" . org-roam-ui-open)        ;; Generate the Org-roam graph
    ("C-c n l" . org-roam-buffer-toggle)  ;; Toggle the Org-roam buffer
    ("C-c n i" . org-roam-node-insert)    ;; Insert an Org-roam node
@@ -129,7 +117,6 @@
   (setq epa-pinentry-mode 'loopback)  ;; Optional: use Emacs minibuffer for passphrase
 )
 
-
 (use-package doom-modeline
   :ensure t
   :init
@@ -137,7 +124,6 @@
   :custom
   ((doom-modeline-height 15)
    (doom-modeline-icon t)))
-
 
 (use-package doom-themes
   :ensure t
@@ -157,19 +143,21 @@
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 
-(use-package projectile
-  :ensure t
-  :init
-  (projectile-mode +1)
-  :custom
-  (projectile-generic-command "rg --files --hidden")
-  (projectile-indexing-method 'hybrid)
-  (projectile-enable-caching t)
-  :config
-  ;; Optionally set Projectile to use the default project search method
-  (setq projectile-completion-system 'default)
-  ;; Optionally define a keymap prefix for Projectile commands
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
+;; (use-package projectile
+;;   :ensure t
+;;   :init
+;;   (projectile-mode +1)
+;;   :custom
+;;   (projectile-generic-command "rg --files --hidden")
+;;   (projectile-indexing-method 'hybrid)
+;;   (projectile-enable-caching t)
+;;   :config
+;;   ;; Optionally set Projectile to use the default project search method
+;;   (setq projectile-completion-system 'default)
+;;   ;; Optionally define a keymap prefix for Projectile commands
+;;   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
+
+(require 'project)
 
 (setq vertico-sort-function
       (lambda (candidates)
@@ -187,9 +175,9 @@
           '(lambda ()
              (c-set-style "stroustrup")))
 
-;(add-hook 'org-mode-hook
-;	  '(lambda ()
-;	     (local-unset-key "C-j")))
+(add-hook 'org-mode-hook
+	  '(lambda ()
+	     (visual-line-mode 1)))
 
 ;;------------------------------------------------------------------------------
 ;(load-theme 'wombat)
@@ -274,9 +262,11 @@
 
 (setq org-agenda-files
       (let* ((directory "~/org-roam/abb")
-	     (file-list (directory-files-recursively directory "\\.org$")) ; Get all files
-	     (additional-files '("~/org-roam/sport/20250907-grifk.org"
-				 "~/org-roam/my/20250912-schedule.org")))
+	     (file-list (directory-files-recursively directory "task.*\\.org$")) ; Get all files
+	     (additional-files '("~/org-roam/sport/grifk.org"
+				 "~/org-roam/sport/esle_lentis.org"
+				 "~/org-roam/sport/aikido.org"
+				 "~/org-roam/schedule.org")))
 	;; Append additional files to the file list
 	(append file-list additional-files)))
   
@@ -370,6 +360,7 @@
      "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
      "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
      default))
+ '(dashboard-bookmarks-show-base nil)
  '(grep-find-ignored-directories '(".src" ".svn" ".git"))
  '(grep-find-ignored-files
    '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
@@ -378,12 +369,16 @@
  '(ls-lisp-verbosity nil)
  '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
+ '(org-agenda-files
+   '("c:/home/jari/org-roam/sport/grifk.org"
+     "c:/home/jari/org-roam/my/schedule.org"))
  '(org-export-with-broken-links 'mark)
  '(package-selected-packages
-   '(ace-window avy consult copilot-chat csharp-mode doom-modeline
-		doom-themes elfeed flycheck imenu-anywhere magit
-		orderless org-roam org-roam-ui ox-hugo powershell
-		projectile treemacs vertico which-key)))
+   '(ace-window avy consult copilot-chat csharp-mode dashboard
+		doom-modeline doom-themes elfeed flycheck
+		imenu-anywhere magit orderless org-roam org-roam-ui
+		ox-hugo powershell projectile treemacs vertico
+		which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
