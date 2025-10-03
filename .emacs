@@ -288,6 +288,65 @@
 ;(setq org-roam-node-completion-function
 ;      (lambda () (org-roam-completion--ido #'org-roam-node-read)))
 
+(defun my/org-roam-links ()
+  "Use Vertico to select a forward or backward link related to the current Org-roam note, without duplicates."
+  (interactive)
+  (let* ((node (org-roam-node-at-point))
+         (node-id (org-roam-node-id node))
+         ;; Backlinks: notes that link to this one
+         (backlinks
+          (org-roam-db-query
+           [:select [nodes:title nodes:file nodes:id]
+            :from links
+            :left-join nodes
+            :on (= links:source nodes:id)
+            :where (= links:dest $s1)]
+           node-id))
+         ;; Forward links: notes this one links to
+         (forward-links
+          (org-roam-db-query
+           [:select [nodes:title nodes:file nodes:id]
+            :from links
+            :left-join nodes
+            :on (= links:dest nodes:id)
+            :where (= links:source $s1)]
+           node-id))
+         ;; Combine and annotate
+         (combined
+          (append
+           (mapcar (lambda (row)
+                     (list :title (nth 0 row)
+                           :file (nth 1 row)
+                           :id (nth 2 row)
+                           :direction 'backward))
+                   backlinks)
+           (mapcar (lambda (row)
+                     (list :title (nth 0 row)
+                           :file (nth 1 row)
+                           :id (nth 2 row)
+                           :direction 'forward))
+                   forward-links)))
+         ;; Remove duplicates by ID
+         (unique-links
+          (let ((seen (make-hash-table :test #'equal)))
+            (seq-filter
+             (lambda (item)
+               (let ((id (plist-get item :id)))
+                 (unless (gethash id seen)
+                   (puthash id t seen)
+                   t)))
+             combined)))
+         ;; Format for completion
+         (choices
+          (mapcar (lambda (item)
+                    (cons (format "%s %s"
+                                  (if (eq (plist-get item :direction) 'backward) "←" "→")
+                                  (plist-get item :title))
+                          (plist-get item :file)))
+                  unique-links))
+         (selected (completing-read "Links: " choices)))
+    (find-file (cdr (assoc selected choices)))))
+
 
 ;;------------------------------------------------------------------------------
 ;; week numbers to calendar
@@ -360,6 +419,7 @@
      "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
      "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
      default))
+ '(dashboard-bookmarks-item-format "%s - %s")
  '(dashboard-bookmarks-show-base nil)
  '(grep-find-ignored-directories '(".src" ".svn" ".git"))
  '(grep-find-ignored-files
