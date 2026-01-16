@@ -89,13 +89,6 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <LSGT> = 94;
     <FK11> = 95;
     <FK12> = 96;
-    <AB11> = 97;
-    <KATA> = 98;
-    <HIRA> = 99;
-    <HENK> = 100;
-    <HKTG> = 101;
-    <MUHE> = 102;
-    <JPCM> = 103;
     <KPEN> = 104;
     <RCTL> = 105;
     <KPDV> = 106;
@@ -112,7 +105,6 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <PGDN> = 117;
      <INS> = 118;
     <DELE> = 119;
-    <I120> = 120;
     <MUTE> = 121;
     <VOL-> = 122;
     <VOL+> = 123;
@@ -124,7 +116,6 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <I129> = 129;
     <HNGL> = 130;
     <HJCV> = 131;
-    <AE13> = 132;
     <LWIN> = 133;
     <RWIN> = 134;
     <COMP> = 135;
@@ -140,13 +131,10 @@ xkb_keycodes "evdev+aliases(qwerty)" {
      <CUT> = 145;
     <HELP> = 146;
     <I147> = 147;
-    <I148> = 148;
-    <I149> = 149;
     <I150> = 150;
     <I151> = 151;
     <I152> = 152;
     <I153> = 153;
-    <I154> = 154;
     <I155> = 155;
     <I156> = 156;
     <I157> = 157;
@@ -160,7 +148,6 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <I165> = 165;
     <I166> = 166;
     <I167> = 167;
-    <I168> = 168;
     <I169> = 169;
     <I170> = 170;
     <I171> = 171;
@@ -170,13 +157,10 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <I175> = 175;
     <I176> = 176;
     <I177> = 177;
-    <I178> = 178;
     <I179> = 179;
     <I180> = 180;
     <I181> = 181;
     <I182> = 182;
-    <I183> = 183;
-    <I184> = 184;
     <I185> = 185;
     <I186> = 186;
     <I187> = 187;
@@ -189,12 +173,10 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <FK16> = 194;
     <FK17> = 195;
     <FK18> = 196;
-    <FK19> = 197;
     <FK20> = 198;
     <FK21> = 199;
     <FK22> = 200;
     <FK23> = 201;
-    <FK24> = 202;
     <MDSW> = 203;
      <ALT> = 204;
     <META> = 205;
@@ -1391,11 +1373,6 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         type= "CTRL+ALT",
         symbols[Group1]= [             F12,             F12,             F12,             F12, XF86Switch_VT_12 ]
     };
-    key <KATA> {         [        Katakana ] };
-    key <HIRA> {         [        Hiragana ] };
-    key <HENK> {         [     Henkan_Mode ] };
-    key <HKTG> {         [ Hiragana_Katakana ] };
-    key <MUHE> {         [        Muhenkan ] };
     key <KPEN> {         [        KP_Enter ] };
     key <RCTL> {         [       Control_R ] };
     key <KPDV> {
@@ -1450,7 +1427,6 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
     key  <CUT> {         [         XF86Cut ] };
     key <HELP> {         [            Help ] };
     key <I147> {         [      XF86MenuKB ] };
-    key <I148> {         [  XF86Calculator ] };
     key <I150> {         [       XF86Sleep ] };
     key <I151> {         [      XF86WakeUp ] };
     key <I152> {         [    XF86Explorer ] };
@@ -1506,7 +1482,6 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
     modifier_map Shift { <LFSH> };
     modifier_map Shift { <RTSH> };
     modifier_map Mod1 { <LALT> };
-    modifier_map Lock { <CAPS> };
     modifier_map Control { <CAPS> };
     modifier_map Mod2 { <NMLK> };
     modifier_map Mod5 { <LVL3> };
