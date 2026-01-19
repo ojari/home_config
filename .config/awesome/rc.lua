@@ -119,191 +119,12 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
 -- Create a textclock widget
-mytextclock = wibox.widget.textclock(" %b %d - %H:%M ")
+-- mytextclock = wibox.widget.textclock(" %b %d - %H:%M ")
+mytextclock = wibox.widget.textclock("  %H:%M ")
 
--- Create BAT widget with progressbar
-local bat_bar = wibox.widget {
-    max_value = 100,
-    value = 0,
-    forced_width = 80,
-    forced_height = 20,
-    paddings = 1,
-    border_width = 1,
-    border_color = beautiful.border_normal,
-    background_color = "#00000088",
-    color = COLOR_GREEN,
-    widget = wibox.widget.progressbar,
-}
-
-local bat_text = wibox.widget {
-    text = "BAT",
-    align = "center",
-    widget = wibox.widget.textbox,
-}
-
-bat_widget = wibox.widget {
-    bat_text,
-    bat_bar,
-    layout = wibox.layout.fixed.horizontal,
-    spacing = 5,
-}
-
-
--- Create RAM widget with progressbar
-local ram_bar = wibox.widget {
-    max_value = 100,
-    value = 0,
-    forced_width = 80,
-    forced_height = 20,
-    paddings = 1,
-    border_width = 1,
-    border_color = beautiful.border_normal,
-    background_color = "#00000088",
-    color = COLOR_GREEN,
-    widget = wibox.widget.progressbar,
-}
-
-local ram_text = wibox.widget {
-    text = "RAM",
-    align = "center",
-    widget = wibox.widget.textbox,
-}
-
-ram_widget = wibox.widget {
-    ram_text,
-    ram_bar,
-    layout = wibox.layout.fixed.horizontal,
-    spacing = 5,
-}
-
--- Create CPU widget with progressbar
-local cpu_bar = wibox.widget {
-    max_value = 100,
-    value = 0,
-    forced_width = 80,
-    forced_height = 20,
-    paddings = 1,
-    border_width = 1,
-    border_color = beautiful.border_normal,
-    background_color = "#00000088",
-    color = "#FF8800",
-    widget = wibox.widget.progressbar,
-}
-
-local cpu_text = wibox.widget {
-    text = "CPU",
-    align = "center",
-    widget = wibox.widget.textbox,
-}
-
-cpu2_widget = wibox.widget {
-    cpu_text,
-    cpu_bar,
-    layout = wibox.layout.fixed.horizontal,
-    spacing = 5,
-}
-
--- Create the widget local
-cpu_widget = wibox.widget {
-	   widget = wibox.widget.textbox,
-	   align = "center",
-}
--- Function to read CPU usage
-local prev_total = 0
-local prev_idle = 0
-local function update_cpu()
-    local f = io.open("/proc/stat", "r")
-    local line = f:read("*l")
-    f:close()
-    local user, nice, system, idle, iowait, irq, softirq, steal = line:match("cpu%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)")
-    local idle_now = idle + iowait
-    local total_now = (user + nice + system + idle + iowait + irq + softirq + steal)
-    local diff_idle = idle_now - prev_idle
-    local diff_total = total_now - prev_total
-    local usage = (1 - diff_idle / diff_total) * 100
-    prev_total = total_now
-    prev_idle = idle_now
-
-    local meminfo = {}
-    for line in io.lines("/proc/meminfo") do
-    local key, value = line:match("(%w+):%s+(%d+)")
-    if key and value then
-        meminfo[key] = tonumber(value)
-    end
-    end
-
-    -- Values are in kB
-    local total = meminfo.MemTotal
-    local free = meminfo.MemFree
-    local buff = meminfo.Buffers
-    local cache = meminfo.Cached
-
-    -- Linux considers buffers+cache as reclaimable, so subtract them from used
-    local used = total - free - buff - cache
-    local percent = (used / total) * 100
-    --cpu_widget.text = string.format("RAM: %.0f%% CPU: %.0f%%", percent, usage)
-
-
--- Update the bars
-    cpu_bar.value = usage
-    ram_bar.value = percent
-    
-    -- Optional: change color based on usage
-    if usage > 80 then
-        cpu_bar.color = "#d63a3a"
-    elseif usage > 50 then
-        cpu_bar.color = "#FFAA00"
-    else
-        cpu_bar.color = COLOR_GREEN
-    end
-    
-    if percent > 80 then
-        ram_bar.color = "#d63a3a"
-    elseif percent > 60 then
-        ram_bar.color = "#FFAA00"
-    else
-        ram_bar.color = COLOR_GREEN
-    end
-end
-
--- Function to update slow changing widgets
-local function update_slow()
-    -- read battery info
-    local bat_path = "/sys/class/power_supply/BAT0/"
-    local bat_capacity_file = bat_path .. "capacity"
-    local bat_status_file = bat_path .. "status"
-    local bat_capacity = 0
-    local bat_status = "Unknown"
-    local f = io.open(bat_capacity_file, "r")
-    if f then
-        bat_capacity = tonumber(f:read("*l")) or 0
-        f:close()
-    end
-    local f = io.open(bat_status_file, "r")
-    if f then
-        bat_status = f:read("*l") or "Unknown"
-        f:close()
-    end 
-
-    -- Update battery bar
-    bat_bar.value = bat_capacity
-    bat_text.text = bat_status
-    
-    -- Hide widgets when charging
-    if bat_status == "Charging" then
-        bat_bar.visible = false
-        bat_text.visible = false
-    else
-        bat_bar.visible = true
-        bat_text.visible = true
-    end
-end
-
--- Update every second
-gears.timer { timeout = 1, autostart = true, callback = update_cpu, }
-
--- Update every 10 second
-gears.timer { timeout = 10, autostart = true, callback = update_slow, }
+-- Load system monitor widgets
+local system_monitor = require("system_monitor")
+local sysmon_widgets = system_monitor.init()
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -366,7 +187,7 @@ awful.screen.connect_for_each_screen(function(s)
 
     -- Each screen has its own tag table.
     -- awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
-    awful.tag({ "1", "2", "3", "4" }, s, awful.layout.layouts[1])
+    awful.tag({ " 1 ", " 2 ", " 3 ", " 4 " }, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -409,12 +230,12 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             -- mykeyboardlayout,
             wibox.widget.systray(),
-	    --cpu_widget,
-        bat_widget,
-        ram_widget,
-        cpu2_widget,
-        mytextclock,
-        s.mylayoutbox,
+            sysmon_widgets.battery,
+            sysmon_widgets.ram,
+            sysmon_widgets.hd,
+            sysmon_widgets.cpu,
+            mytextclock,
+            s.mylayoutbox,
         },
     }
 end)
