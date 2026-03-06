@@ -46,7 +46,7 @@ end
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(gears.filesystem.get_themes_dir() .. "zenburn/theme.lua")
-beautiful.font = "Hack 12"
+beautiful.font = "Hack 10"
 beautiful.menu_height=24
 beautiful.menu_width=220
 
@@ -98,6 +98,7 @@ mymainmenu = awful.menu({
     items = {  { "awesome", myawesomemenu, beautiful.awesome_icon },
                -- { "Debian", debian.menu.Debian_menu.Debian },
                { "Terminal", terminal, "/usr/share/icons/hicolor/48x48/apps/xterm.png"},
+               { "Kitty", "kitty", "/usr/share/icons/hicolor/48x48/apps/xterm.png"},
                { "Vivaldi", "vivaldi", "/usr/share/icons/hicolor/48x48/apps/vivaldi.png"},
                { "Emacs",   "emacs",   "/usr/share/icons/hicolor/48x48/apps/emacs.png"},
                { "Code",    "code",    "/usr/share/pixmaps/vscode.png"},
@@ -450,6 +451,10 @@ clientbuttons = gears.table.join(
     awful.button({ }, 1, function (c)
         c:emit_signal("request::activate", "mouse_click", {raise = true})
     end),
+    awful.button({ }, 3, function (c)
+        c:emit_signal("request::activate", "mouse_click", {raise = true})
+        awful.mouse.client.resize(c)
+    end),
     awful.button({ modkey }, 1, function (c)
         c:emit_signal("request::activate", "mouse_click", {raise = true})
         awful.mouse.client.move(c)
@@ -520,7 +525,7 @@ awful.rules.rules = {
       }, properties = { floating = true }},
 
     -- Add titlebars to normal clients and dialogs
-    { rule_any = {type = { "normal", "dialog" }
+    { rule_any = {type = { "dialog" }
       }, properties = { titlebars_enabled = true }
     },
 
