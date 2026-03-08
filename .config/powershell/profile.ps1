@@ -2,6 +2,11 @@
 #Set-PoshPrompt -Theme jari
 
 Write-Host "profile.ps1..."
+Set-PSReadLineOption -EditMode Emacs
+Set-PSReadLineKeyHandler -Key Ctrl+i -Function HistorySearchBackward
+Set-PSReadLineKeyHandler -Key Ctrl+k -Function HistorySearchForward
+Set-PSReadLineKeyHandler -Key Ctrl+j -Function BackwardChar
+Set-PSReadLineKeyHandler -Key Ctrl+l -Function ForwardChar
 
 $repos = @(".")
 

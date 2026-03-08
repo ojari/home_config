@@ -2,15 +2,6 @@
 (global-set-key [f11] 'kill-this-buffer)
 (global-set-key [f12] 'magit-status)
 
-(eval-after-load "dired"
-  '(progn
-     (define-key dired-mode-map (kbd "<left>") 'dired-up-directory)
-     (define-key dired-mode-map (kbd "<right>") 'dired-find-file)
-     (define-key dired-mode-map (kbd "j") 'dired-up-directory)
-     (define-key dired-mode-map (kbd "l") 'dired-find-file)
-     (define-key dired-mode-map (kbd "i") 'previous-line)
-     (define-key dired-mode-map (kbd "k") 'next-line)))
-
 (eval-after-load "ibuffer"
   '(progn
      (define-key ibuffer-mode-map (kbd "i") 'previous-line)
@@ -62,12 +53,13 @@
 ;;(define-key my-jmenu "a" 'avy-goto-char-2)
 (define-key my-jmenu "b" 'consult-buffer)
 ;;(define-key my-jmenu "c" 'avy-copy-line)
-(define-key my-jmenu "c" 'my-compile)
+(define-key my-jmenu "c" 'my/compile)
 (define-key my-jmenu "d" 'arm-gdb)
 (define-key my-jmenu "e" 'elfeed)
 ;;(define-key my-jmenu "f" 'ido-imenu-anywhere)
 (define-key my-jmenu "f" 'org-roam-node-find)
-(define-key my-jmenu "g" 'magit-list-repositories) 
+;; (define-key my-jmenu "g" 'magit-list-repositories)
+(define-key my-jmenu "g" 'magit) 
 ;;(define-key my-jmenu "i" 'ido-switch-buffer)
 (define-key my-jmenu "i" 'consult-register)
 ;;(define-key my-jmenu "k" 'ido-open-org-roam-node)

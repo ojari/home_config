@@ -10,27 +10,16 @@
   (progn
     (xterm-mouse-mode)))
 
-(setq
-  nnmail-spool-file "Z:/backup/.../thunderbird/.../Mail/LocalFolders/InBox"
-  gnus-select-method '(nnml ""))
-
 (setq gdb-many-windows nil)
 
-(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono Ret" :height 110)
+(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono Ret" :height 120)
 
-(add-to-list 'load-path "/home/jari")
+(add-to-list 'load-path (getenv "HOME"))
 
 (setq inhibit-startup-screen t
       visible-bell 1
       system-time-locale "fi"
-      frame-title-format "emacs - %b"
-      ;;default-frame-alist '((top . 0)
-;;			    (left . 0)
-;;			    (width . 120)
-;;			    (height . screen-height))
-					;(font . "-unknown-Hack-normal-normal-normal-*-16-*-*-*-m-0-iso10646-1"))
-			    ;;(font . "-outline-Fira Code Retina-regular-normal-normal-*-17-*-*-*-c-0-iso8859-1"))
-      
+      frame-title-format "%b"
       w32-get-true-file-attributes nil
       tab-stop-list (number-sequence 4 200 4)
       tab-width 4
@@ -42,13 +31,11 @@
       ls-lisp-verbosity nil
       ls-lisp-use-insert-directory-program nil
       calendar-week-start-day 1
-      minibuffer-message-timeout 0
-      )
+      minibuffer-message-timeout 0)
 
 (fset 'yes-or-no-p 'y-or-n-p)
 
 (require 'package)
-
 
 (setq package-check-signature nil)
 (add-to-list 'package-archives
@@ -60,17 +47,20 @@
 (package-initialize)
 
 
-;(ido-mode t)
-;(ido-everywhere t)
-;;(ido-vertical-mode t)
-;;(setq ido-enable-flex-matching t
-;;      ido-everywhere t)
-
 (define-prefix-command 'my-jmenu)
 
 (use-package org-roam
   :config
-  (define-key org-mode-map (kbd "C-j") 'my-jmenu))
+  (define-key org-mode-map (kbd "C-j") 'my-jmenu)
+  :custom
+  (org-roam-completion-system 'vertico)
+  (org-roam-completion-everywhere t)
+  (org-roam-directory "~/org-roam"))
+
+(use-package org-modern
+  :ensure t
+  )
+  
 
 (use-package vertico
   :custom
@@ -94,13 +84,6 @@
 ;;       read-buffer-completion-ignore-case t
 ;;       read-file-name-completion-ignore-case t)
 
-
-(use-package orderless
-  :custom
-  (completion-styles '(orderless))
-  (completion-category-defaults nil)
-  (completion-category-overrides '((file (styles partial-completion)))))
-
 (use-package consult
   :ensure t
   :bind
@@ -109,53 +92,12 @@
   ;;(consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --glob '!*.xml' --glob '!*.txt'")
   )
 
-
 (use-package epa
   :ensure nil  ;; epa is built-in, so no need to install
   :config
   (epa-file-enable)  ;; Enable automatic decryption/encryption of .gpg files
   (setq epa-pinentry-mode 'loopback)  ;; Optional: use Emacs minibuffer for passphrase
 )
-
-(use-package doom-modeline
-  :ensure t
-  :init
-  (doom-modeline-mode 1)
-  :custom
-  ((doom-modeline-height 15)
-   (doom-modeline-icon t)))
-
-(use-package doom-themes
-  :ensure t
-  :config
-  ;; Global settings (defaults)
-  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-        doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  (load-theme 'wombat t)
-
-  ;; Enable flashing mode-line on errors
-  (doom-themes-visual-bell-config)
-  ;; Enable custom neotree theme (all-the-icons must be installed!)
-  (doom-themes-neotree-config)
-  ;; or for treemacs users
-  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
-  (doom-themes-treemacs-config)
-  ;; Corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
-
-;; (use-package projectile
-;;   :ensure t
-;;   :init
-;;   (projectile-mode +1)
-;;   :custom
-;;   (projectile-generic-command "rg --files --hidden")
-;;   (projectile-indexing-method 'hybrid)
-;;   (projectile-enable-caching t)
-;;   :config
-;;   ;; Optionally set Projectile to use the default project search method
-;;   (setq projectile-completion-system 'default)
-;;   ;; Optionally define a keymap prefix for Projectile commands
-;;   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
 
 (require 'project)
 
@@ -185,7 +127,7 @@
 ;(load-theme 'tango-dark)
 
 (if (eq system-type 'windows-nt)
-    (cd "c:/home"))
+    (cd (getenv "HOME")))
 
 ;;------------------------------------------------------------------------------
 (defun node-repl ()
@@ -244,7 +186,7 @@
    (plantuml . t)
    (dot . t)
    (shell . t)
-   (C . t)))
+   (python . t)))
 
 ;;(setq org-babel-shell-names '("pwsh"))
 ;;(setq shell-file-name "C:/Program Files/PowerShell/7/pwsh.exe")
@@ -261,7 +203,7 @@
       )
 
 (setq org-agenda-files
-      (let* ((directory "~/org-roam/abb")
+      (let* ((directory "~/org-roam")
 	     (file-list (directory-files-recursively directory "task.*\\.org$")) ; Get all files
 	     (additional-files '("~/org-roam/sport/grifk.org"
 				 "~/org-roam/sport/esle_lentis.org"
@@ -276,14 +218,13 @@
 
 ;;(prefer-coding-system 'utf-8)
 
-(defun my-org-confirm-babel-evaluate (lang body)
-  (not (string= lang "plantuml")))  ; don't ask for plantuml
+(defun my/org-confirm-babel-evaluate (lang body)
+  (not (or (string= lang "plantuml")
+	   (string= lang "python")
+	   (string= lang "dot"))))  ; don't ask for plantuml
 
-(setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+(setq org-confirm-babel-evaluate 'my/org-confirm-babel-evaluate)
 
-(setq org-roam-completion-system 'vertico
-      org-roam-completion-everywhere t
-      org-roam-directory "~/org-roam")
 
 ;(setq org-roam-node-completion-function
 ;      (lambda () (org-roam-completion--ido #'org-roam-node-read)))
@@ -363,17 +304,7 @@
         'font-lock-face 'calendar-iso-week-face))
 
 ;;------------------------------------------------------------------------------
-;; (defun mbed-flash ()
-;;   (interactive)
-;;   (copy-file "BUILD/blinky.bin" "D:/"))
-
-;; (defun arm-gdb ()
-;;   (interactive)
-;;   (setq gdb-many-windows nil)
-;;   (gdb "/mnt/bin/gcc-arm/bin/arm-none-eabi-gdb -i=mi bin/meas.elf"))
-
-
-(defun my-region-transfer ()
+(defun my/region-transfer ()
   (interactive)
   (if (region-active-p)
       (let ((text (buffer-substring (region-beginning) (region-end))))
@@ -384,27 +315,49 @@
     (message "No region active!")))
 
 ;;------------------------------------------------------------------------------
-(load-library "dired")
-(defun dired-ediff-files ()
-  (interactive)
-  (let ((files (dired-get-marked-files))
-        (wnd (current-window-configuration)))
-    (if (= (length files) 2)
-	(progn
-	  (message (car files))
-          (ediff-files (car files)
-		       (cadr files))
-	  (add-hook 'ediff-aft1er-quit-hook-internal
-                    (lambda ()
-                      (setq ediff-after-quit-hook-internal nil)
-                      (set-window-configuration wnd))))
-      (error "no more than 2 files should be marked"))))
-
-(define-key dired-mode-map "e" 'dired-ediff-files)
-
-;;------------------------------------------------------------------------------
 (load-library "~/project_config.el")
 (load-library "~/keymap.el")
+
+;;------------------------------------------------------------------------------
+(setq eshell-prompt-function
+      (lambda ()
+        (concat
+         (propertize (eshell/pwd) 'face `(:foreground "cyan"))
+         (propertize " $ " 'face `(:foreground "yellow")))))
+(setq eshell-highlight-prompt nil)
+
+;;------------------------------------------------------------------------------
+(use-package doom-modeline
+  :ensure t
+  :init
+  (doom-modeline-mode 1)
+  :custom
+  ((doom-modeline-height 15)
+   (doom-modeline-icon t)))
+
+(use-package doom-themes
+  :ensure t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme 'wombat t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  ; (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles partial-completion)))))
 
 ;;------------------------------------------------------------------------------
 (custom-set-variables
@@ -430,14 +383,16 @@
  '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
  '(org-agenda-files
-   '("c:/home/jari/org-roam/sport/grifk.org"
-     "c:/home/jari/org-roam/my/schedule.org"))
+   '("c:/home/jari/org-roam/abb/abb.org"
+     "c:/home/jari/org-roam/abb/abb_parameters.org"
+     "c:/home/jari/org-roam/abb/abb_repositories.org"
+     "c:/home/jari/org-roam/abb/abb_wiki.org"))
  '(org-export-with-broken-links 'mark)
  '(package-selected-packages
    '(ace-window avy consult copilot-chat csharp-mode dashboard
 		doom-modeline doom-themes elfeed flycheck
-		imenu-anywhere magit orderless org-roam org-roam-ui
-		ox-hugo powershell projectile treemacs vertico
+		imenu-anywhere magit orderless org-modern org-roam
+		org-roam-ui powershell projectile vertico
 		which-key)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
