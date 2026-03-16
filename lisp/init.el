@@ -502,8 +502,8 @@
   )
 
 ;;------------------------------------------------------------------------------
-(load-library "~/lisp/project_config.el")
-(load-library "~/lisp/keymap.el")
+(load-library "~/home_config/lisp/project_config.el")
+(load-library "~/home_config/lisp/keymap.el")
 
 ;;------------------------------------------------------------------------------
 (custom-set-variables

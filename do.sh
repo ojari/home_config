@@ -168,6 +168,13 @@ case $1 in
     clean) # clean up system
 		cleanup_system
 		;;
+    fonts) # download fonts
+	#wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.tar.xz
+	#tar xf FiraCode.tar.xz
+	mkdir -p ~/.local/share/fonts
+	mv *.ttf ~/.local/share/fonts
+	fc-cache ~/.local/share/fonts
+	;;
     *)
 		echo "Unknown command: $1"
         # show usage

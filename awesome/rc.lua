@@ -55,7 +55,7 @@ beautiful.menu_width=220
 terminal = "x-terminal-emulator"
 editor = os.getenv("EDITOR") or "editor"
 -- editor_cmd = terminal .. " -e " .. editor
-editor_cmd = "emacs"
+editor_cmd = "emacs --init-directory=/home/jari/home_config/lisp"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -100,7 +100,7 @@ mymainmenu = awful.menu({
                { "Terminal", terminal, "/usr/share/icons/hicolor/48x48/apps/xterm.png"},
                { "Kitty", "kitty", "/usr/share/icons/hicolor/48x48/apps/xterm.png"},
                { "Vivaldi", "vivaldi", "/usr/share/icons/hicolor/48x48/apps/vivaldi.png"},
-               { "Emacs",   "emacs",   "/usr/share/icons/hicolor/48x48/apps/emacs.png"},
+               { "Emacs",   "emacs --init-directory=/home/jari/home_config/lisp",   "/usr/share/icons/hicolor/48x48/apps/emacs.png"},
                { "Code",    "code",    "/usr/share/pixmaps/vscode.png"},
                menu_terminal
             }
