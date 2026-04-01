@@ -47,7 +47,8 @@ output X11-1 resolution 1920x1200
 # resumed. It will also lock your screen before your computer goes to sleep.
 
 ### Input configuration
-input * xkb_file /home/jari/xkb.dump
+input * xkb_file /home/jari/home_config/xkb.dump
+
 #
 # Example configuration:
 #
@@ -67,6 +68,8 @@ input * xkb_file /home/jari/xkb.dump
 #
     # Start a terminal
     bindsym $mod+Return exec $term
+
+    bindsym $mod+e exec emacs --init-directory=/home/jari/home_config/lisp
 
     # Kill focused window
     bindsym $mod+Shift+q kill
@@ -118,11 +121,21 @@ input * xkb_file /home/jari/xkb.dump
     bindsym $mod+2 workspace number 2
     bindsym $mod+3 workspace number 3
     bindsym $mod+4 workspace number 4
+    bindsym $mod+5 workspace number 5
+    bindsym $mod+6 workspace number 6
+    bindsym $mod+7 workspace number 7
+    bindsym $mod+8 workspace number 8
+    bindsym $mod+9 workspace number 9
     # Move focused container to workspace
     bindsym $mod+Shift+1 move container to workspace number 1
     bindsym $mod+Shift+2 move container to workspace number 2
     bindsym $mod+Shift+3 move container to workspace number 3
     bindsym $mod+Shift+4 move container to workspace number 4
+    bindsym $mod+Shift+5 move container to workspace number 5
+    bindsym $mod+Shift+6 move container to workspace number 6
+    bindsym $mod+Shift+7 move container to workspace number 7
+    bindsym $mod+Shift+8 move container to workspace number 8
+    bindsym $mod+Shift+9 move container to workspace number 9
     # Note: workspaces can have any name you want, not just numbers.
     # We just use 1-10 as the default.
 #
@@ -137,7 +150,7 @@ input * xkb_file /home/jari/xkb.dump
     # Switch the current container between different layout styles
     bindsym $mod+s layout stacking
     bindsym $mod+w layout tabbed
-    bindsym $mod+e layout toggle split
+    #bindsym $mod+e layout toggle split
 
     # Make the current focus fullscreen
     bindsym $mod+f fullscreen
@@ -216,6 +229,19 @@ bindsym $mod+r mode "resize"
 #         inactive_workspace #32323200 #32323200 #5c5c5c
 #     }
 # }
+
+# Zenburn-inspired window decoration colors
+client.focused          #6f6f6f #2f2f2f #dcdccc #3f3f3f #2f2f2f
+client.focused_inactive #4d4d4d #1f1f1f #a0a0a0 #2f2f2f #1f1f1f
+client.unfocused        #4d4d4d #1f1f1f #888888 #2f2f2f #1f1f1f
+client.urgent           #cc9393 #2f2f2f #ffffff #3f3f3f #2f2f2f
+
+
+default_border none
+default_floating_border none
+
+titlebar_padding 1
+
 
 exec waybar
 

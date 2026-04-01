@@ -2,3 +2,6 @@
 lisp/eln-cache/
 lisp/elpa/
 lisp/org-roam.db
+/lisp/eshell/
+/lisp/tramp
+/lisp/transient/

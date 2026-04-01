@@ -11,4 +11,7 @@ mkdir ~/.config/waybar
 ln -s ~/home_config/waybar/config ~/.config/waybar/config
 ln -s ~/home_config/waybar/style.css ~/.config/waybar/style.css
 
+mkdir ~/.config/foot
+ln -s ~/home_config/foot/foot.ini ~/.config/foot/foot.ini
+
 ln -s ~/home_config/xinitrc ~/.xinitrc
