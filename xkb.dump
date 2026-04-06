@@ -56,7 +56,6 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <AB09> = 60;
     <AB10> = 61;
     <RTSH> = 62;
-    <KPMU> = 63;
     <LALT> = 64;
     <SPCE> = 65;
     <CAPS> = 66;
@@ -70,28 +69,13 @@ xkb_keycodes "evdev+aliases(qwerty)" {
     <FK08> = 74;
     <FK09> = 75;
     <FK10> = 76;
-    <NMLK> = 77;
     <SCLK> = 78;
-     <KP7> = 79;
-     <KP8> = 80;
-     <KP9> = 81;
     <KPSU> = 82;
-     <KP4> = 83;
-     <KP5> = 84;
-     <KP6> = 85;
-    <KPAD> = 86;
-     <KP1> = 87;
-     <KP2> = 88;
-     <KP3> = 89;
-     <KP0> = 90;
-    <KPDL> = 91;
     <LVL3> = 92;
     <LSGT> = 94;
     <FK11> = 95;
     <FK12> = 96;
-    <KPEN> = 104;
     <RCTL> = 105;
-    <KPDV> = 106;
     <PRSC> = 107;
     <RALT> = 108;
     <LNFD> = 109;
@@ -270,6 +254,19 @@ xkb_types "complete" {
         map[Mod4]= Level2;
         level_name[Level1]= "Base";
         level_name[Level2]= "Super";
+    };
+    type "FOUR_LEVEL_SUPER_ALPHABETIC" {
+        modifiers= Shift+Lock+Mod4;
+        map[Shift]= Level2;
+        map[Lock]= Level2;
+        map[Mod4]= Level3;
+        map[Shift+Mod4]= Level4;
+        map[Lock+Mod4]= Level3;
+        map[Shift+Lock+Mod4]= Level4;
+        level_name[Level1]= "Base";
+        level_name[Level2]= "Shift";
+        level_name[Level3]= "Super";
+        level_name[Level4]= "Shift Super";
     };
     type "PC_CONTROL_LEVEL2" {
         modifiers= Control;
@@ -1177,8 +1174,8 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         type= "FOUR_LEVEL_ALPHABETIC",
         symbols[Group1]= [               u,               U,               u,               U ] };
     key <AD08> {
-        type= "FOUR_LEVEL_SEMIALPHABETIC",
-        symbols[Group1]= [               i,               I,        idotless,             bar ] };
+        type= "FOUR_LEVEL_SUPER_ALPHABETIC",
+        symbols[Group1]= [               i,               I,        Up,             Up ] };
     key <AD09> {
         type= "FOUR_LEVEL_ALPHABETIC",
         symbols[Group1]= [               o,               O,              oe,              OE ] };
@@ -1212,15 +1209,15 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         type= "FOUR_LEVEL_ALPHABETIC",
         symbols[Group1]= [               h,               H,               h,               H ] };
     key <AC07> {
-        type= "FOUR_LEVEL_ALPHABETIC",
-        symbols[Group1]= [               j,               J,               j,               J ] };
+        type= "FOUR_LEVEL_SUPER_ALPHABETIC",
+        symbols[Group1]= [               j,               J,            Left,            Left ] };
     key <AC08> {
-        type= "FOUR_LEVEL_SEMIALPHABETIC",
-        symbols[Group1]= [               k,               K,             kra,        NoSymbol ]
+        type= "FOUR_LEVEL_SUPER_ALPHABETIC",
+        symbols[Group1]= [               k,               K,             Down,           Down ]
     };
     key <AC09> {
-        type= "FOUR_LEVEL_SEMIALPHABETIC",
-        symbols[Group1]= [               l,               L,     dead_stroke,        NoSymbol ]
+        type= "FOUR_LEVEL_SUPER_ALPHABETIC",
+        symbols[Group1]= [               l,               L,     Right,        Right ]
     };
     key <AC10> {
         type= "FOUR_LEVEL_ALPHABETIC",
@@ -1240,11 +1237,11 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
     };
     key <AB01> {
         type= "FOUR_LEVEL_ALPHABETIC",
-        symbols[Group1]= [               z,               Z,             ezh,             EZH ]
+        symbols[Group1]= [               z,               Z,             less,             less ]
     };
     key <AB02> {
         type= "FOUR_LEVEL_SEMIALPHABETIC",
-        symbols[Group1]= [               x,               X,        multiply,  periodcentered ]
+        symbols[Group1]= [               x,               X,        greater,  greater ]
     };
     key <AB03> {
         type= "FOUR_LEVEL_ALPHABETIC",
@@ -1279,10 +1276,6 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         symbols[Group1]= [           minus,      underscore,          endash, dead_belowcomma ]
     };
     key <RTSH> {         [         Shift_R ] };
-    key <KPMU> {
-        type= "CTRL+ALT",
-        symbols[Group1]= [     KP_Multiply,     KP_Multiply,     KP_Multiply,     KP_Multiply,   XF86ClearGrab ]
-    };
     key <LALT> {         [           Alt_L,          Meta_L ] };
     key <SPCE> {
         type= "FOUR_LEVEL",
@@ -1333,30 +1326,7 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         type= "CTRL+ALT",
         symbols[Group1]= [             F10,             F10,             F10,             F10, XF86Switch_VT_10 ]
     };
-    key <NMLK> {         [        Num_Lock ] };
     key <SCLK> {         [     Scroll_Lock ] };
-    key  <KP7> {         [         KP_Home,            KP_7 ] };
-    key  <KP8> {         [           KP_Up,            KP_8 ] };
-    key  <KP9> {         [        KP_Prior,            KP_9 ] };
-    key <KPSU> {
-        type= "CTRL+ALT",
-        symbols[Group1]= [     KP_Subtract,     KP_Subtract,     KP_Subtract,     KP_Subtract,  XF86Prev_VMode ]
-    };
-    key  <KP4> {         [         KP_Left,            KP_4 ] };
-    key  <KP5> {         [        KP_Begin,            KP_5 ] };
-    key  <KP6> {         [        KP_Right,            KP_6 ] };
-    key <KPAD> {
-        type= "CTRL+ALT",
-        symbols[Group1]= [          KP_Add,          KP_Add,          KP_Add,          KP_Add,  XF86Next_VMode ]
-    };
-    key  <KP1> {         [          KP_End,            KP_1 ] };
-    key  <KP2> {         [         KP_Down,            KP_2 ] };
-    key  <KP3> {         [         KP_Next,            KP_3 ] };
-    key  <KP0> {         [       KP_Insert,            KP_0 ] };
-    key <KPDL> {
-        type= "KEYPAD",
-        symbols[Group1]= [       KP_Delete,    KP_Separator ]
-    };
     key <LVL3> {
         type= "ONE_LEVEL",
         symbols[Group1]= [ ISO_Level3_Shift ]
@@ -1373,12 +1343,7 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
         type= "CTRL+ALT",
         symbols[Group1]= [             F12,             F12,             F12,             F12, XF86Switch_VT_12 ]
     };
-    key <KPEN> {         [        KP_Enter ] };
     key <RCTL> {         [       Control_R ] };
-    key <KPDV> {
-        type= "CTRL+ALT",
-        symbols[Group1]= [       KP_Divide,       KP_Divide,       KP_Divide,       KP_Divide,      XF86Ungrab ]
-    };
     key <PRSC> {
         type= "PC_ALT_LEVEL2",
         symbols[Group1]= [           Print,         Sys_Req ]
@@ -1483,7 +1448,6 @@ xkb_symbols "pc+fi+inet(evdev)+capslock(ctrl_modifier)" {
     modifier_map Shift { <RTSH> };
     modifier_map Mod1 { <LALT> };
     modifier_map Control { <CAPS> };
-    modifier_map Mod2 { <NMLK> };
     modifier_map Mod5 { <LVL3> };
     modifier_map Control { <RCTL> };
     modifier_map Mod4 { <LWIN> };
@@ -1564,16 +1528,6 @@ xkb_geometry "pc(pc105)" {
         corner= 1,
         { [ 113,  18 ] },
         { [   2,   1 ], [ 111,  16 ] }
-    };
-    shape "KP0" {
-        corner= 1,
-        { [  37,  18 ] },
-        { [   2,   1 ], [  35,  16 ] }
-    };
-    shape "KPAD" {
-        corner= 1,
-        { [  18,  37 ] },
-        { [   2,   1 ], [  16,  35 ] }
     };
     shape "LEDS" { { [  75,  20 ] } };
     shape "LED" { { [   5,   1 ] } };
@@ -1725,60 +1679,6 @@ xkb_geometry "pc(pc105)" {
             };
         };
     }; // End of "Editing" section
-
-    section "Keypad" {
-        key.color= "grey20";
-        priority=  10;
-        top=       61;
-        left=      376;
-        width=     77;
-        height=    95;
-        row {
-            top=  1;
-            left= 1;
-            keys {
-                { <NMLK>, "NORM",   1 }, { <KPDV>, "NORM",   1 },
-                { <KPMU>, "NORM",   1 }, { <KPSU>, "NORM",   1 }
-            };
-        };
-        row {
-            top=  20;
-            left= 1;
-            keys {
-                {  <KP7>, "NORM",   1, color="white" },
-                {  <KP8>, "NORM",   1, color="white" },
-                {  <KP9>, "NORM",   1, color="white" },
-                { <KPAD>, "KPAD",   1 }
-            };
-        };
-        row {
-            top=  39;
-            left= 1;
-            keys {
-                {  <KP4>, "NORM",   1, color="white" },
-                {  <KP5>, "NORM",   1, color="white" },
-                {  <KP6>, "NORM",   1, color="white" }
-            };
-        };
-        row {
-            top=  58;
-            left= 1;
-            keys {
-                {  <KP1>, "NORM",   1, color="white" },
-                {  <KP2>, "NORM",   1, color="white" },
-                {  <KP3>, "NORM",   1, color="white" },
-                { <KPEN>, "KPAD",   1 }
-            };
-        };
-        row {
-            top=  77;
-            left= 1;
-            keys {
-                {  <KP0>, "KP0",   1, color="white" },
-                { <KPDL>, "NORM",   1, color="white" }
-            };
-        };
-    }; // End of "Keypad" section
 
     solid "LedPanel" {
         top=      22;

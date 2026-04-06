@@ -16,6 +16,13 @@ set $menu wmenu-run
 
 include /etc/sway/config-vars.d/*
 
+set $gnome-schema org.gnome.desktop.interface
+
+exec_always {
+    gsettings set $gnome-schema gtk-theme 'adw-gtk3-dark'
+    gsettings set $gnome-schema color-scheme 'prefer-dark'
+}
+
 ### Output configuration
 #
 # Default wallpaper (more resolutions are available in /usr/share/backgrounds/sway/)
@@ -107,7 +114,7 @@ input * xkb_file /home/jari/home_config/xkb.dump
     bindsym $mod+Shift+$left move left
     bindsym $mod+Shift+$down move down
     bindsym $mod+Shift+$up move up
-    bindsym $mod+Shift+$right move right
+    #bindsym $mod+Shift+$right move right
     # Ditto, with arrow keys
     bindsym $mod+Shift+Left move left
     bindsym $mod+Shift+Down move down
@@ -144,9 +151,10 @@ input * xkb_file /home/jari/home_config/xkb.dump
     # You can "split" the current object of your focus with
     # $mod+b or $mod+v, for horizontal and vertical splits
     # respectively.
-    bindsym $mod+b splith
-    bindsym $mod+v splitv
+    bindsym $mod+b layout splith
+    bindsym $mod+v layout splitv
 
+    bindsym $mod+Shift+l exec swaylock --color 2F2F2f
     # Switch the current container between different layout styles
     bindsym $mod+s layout stacking
     bindsym $mod+w layout tabbed

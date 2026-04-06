@@ -528,14 +528,14 @@
    '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
      "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
  '(grep-highlight-matches t)
- '(ls-lisp-verbosity nil t)
+ '(ls-lisp-verbosity nil)
  '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
  '(org-agenda-files
    '("c:/home/jari/org-roam/sport/grifk.org"
      "c:/home/jari/org-roam/my/schedule.org"))
  '(org-export-with-broken-links 'mark)
- '(package-selected-packages '(magit org-roam vterm)))
+ '(package-selected-packages '(magit org-modern org-roam org-roam-ui vterm)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
