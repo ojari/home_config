@@ -245,8 +245,9 @@ client.unfocused        #4d4d4d #1f1f1f #888888 #2f2f2f #1f1f1f
 client.urgent           #cc9393 #2f2f2f #ffffff #3f3f3f #2f2f2f
 
 
-default_border none
-default_floating_border none
+# default_border none
+# default_floating_border none
+default_border pixel 2
 
 titlebar_padding 1
 

@@ -183,7 +183,7 @@
   :config
   (define-key org-mode-map (kbd "C-j") 'my-jmenu)
   :custom
-  ;(org-roam-completion-system 'vertico)
+  (org-roam-completion-system 'vertico)
   (org-roam-completion-everywhere t)
   (org-roam-directory "~/org-roam"))
 
@@ -380,10 +380,6 @@
 	
 
 ;;(prefer-coding-system 'utf-8)
-
-(setq org-roam-completion-system 'vertico
-      org-roam-completion-everywhere t
-      org-roam-directory "~/org-roam")
 
 ;(setq org-roam-node-completion-function
 ;      (lambda () (org-roam-completion--ido #'org-roam-node-read)))
