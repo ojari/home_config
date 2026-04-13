@@ -1,4 +1,3 @@
-
 #!/bin/sh
 
 alias ls="ls --color=always --group-directories-first"
@@ -7,14 +6,15 @@ alias ls="ls --color=always --group-directories-first"
 alias ll="ls -lAh"
 alias du1="du --max-depth=1"
 alias grep="grep --color"
-alias e=emacs
+alias e="emacs -nw --init-directory=$HOME/home_config/lisp"
 alias ec=emacsclient
 alias dn=dotnet
 alias dnr="dotnet run"
 alias ems="emacs -nw --eval '(progn (magit-status) (delete-other-windows))'"
 alias idf=idf.py
+alias idfini=". $HOME/.espressif/tools/activate_idf_v5.5.2.sh"
 alias idfset="idf.py set-target esp32s3"
-alias idfbld="idf.py -p /dev/ttyACM0 build flash monitor"
+alias idfbld0="idf.py -p /dev/ttyACM0 build flash monitor"
 alias idfbld1="idf.py -p /dev/ttyACM1 build flash monitor"
 
 edf ()
