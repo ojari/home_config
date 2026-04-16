@@ -252,10 +252,19 @@ client.urgent           #cc9393 #2f2f2f #ffffff #3f3f3f #2f2f2f
 # default_border none
 # default_floating_border none
 default_border pixel 2
-
 titlebar_padding 1
 
+assign [app_id="foot"] 1
+assign [app_id="code"] 2
+assign [app_id="org.mozilla.firefox"] 3
+assign [app_id="emacs"] 4
+assign [app_id="obsidian"] 5
+
+assign [app_id="org.gnome.Evolution"] 7
+assign [app_id="Slack"] 7
+workspace 5, layout tabbed
 
 exec waybar
+exec /home/jari/home_config/sway/startup.sh
 
 include /etc/sway/config.d/*
