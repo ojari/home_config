@@ -93,36 +93,31 @@
 
 (use-package icomplete
   :ensure nil
-  :hook (after-init-hook . (lambda ()
-                              (fido-mode -1)
-                              (icomplete-vertical-mode -1)))
-  :bind (:map icomplete-minibuffer-map
-              ("C-k" . icomplete-forward-completions)
-              ("C-i" . icomplete-backward-completions)
-              ("C-v" . icomplete-vertical-toggle)
-              ("RET" . icomplete-force-complete-and-exit)
-              ("C-j" . exit-minibuffer))
   :custom
-  (icomplete-delay-completions-threshold 0)
   (icomplete-compute-delay 0)
-  (icomplete-show-matches-on-no-input t)
-  (icomplete-hide-common-prefix nil)
-  (icomplete-prospects-height 10)
-  (icomplete-separator " . ")
-  (icomplete-with-completion-tables t)
-  (icomplete-in-buffer t)
   (icomplete-max-delay-chars 0)
-  (icomplete-scroll t))
+  (icomplete-with-completion-tables t)
+  
+  :config
+  (setq icomplete-delay-completions-threshold 0)
+  (setq icomplete-compute-delay 0)
+  (setq icomplete-show-matches-on-no-input t)
+  (setq icomplete-hide-common-prefix nil)
+  (setq icomplete-prospects-height 10)
+  (setq icomplete-separator " . ")
+  (setq icomplete-with-completion-tables t)
+  (setq icomplete-in-buffer t)
+  (setq icomplete-max-delay-chars 0)
+  (setq icomplete-scroll t)
+  (fido-vertical-mode 1))
 
 (use-package minibuffer
   :ensure nil
   :custom
-  (completion-auto-help t)
-  (completion-auto-select 'second-tab)
+  (completion-styles '(partial-completion flex basic))
   (completion-eager-update t)
   (completion-ignore-case t)
-  (completion-show-help nil)
-  (completion-styles '(partial-completion flex initials))
+  (completions-detailed t)
   (completions-format 'one-column)
   (completions-max-height nil)
   (completions-sort 'historical)
@@ -130,20 +125,10 @@
   (read-buffer-completion-ignore-case t)
   (read-file-name-completion-ignore-case t))
 
-(use-package vertico
-  :ensure t
-  :custom
-  (vertico-count 20)
-  (vertico-sort-function (lambda (candidates) (sort candidates #'string<)))
-  :init
-  (vertico-mode))
-
-(use-package orderless
-  :ensure t
-  :custom
-  (completion-styles '(orderless))
-  (completion-category-defaults nil)
-  (completion-category-overrides '((file (styles partial-completion)))))
+(use-package savehist
+  :ensure nil
+  :config
+  (savehist-mode 1))
 
 (use-package consult
   :ensure t
@@ -215,7 +200,7 @@
   :ensure t
   :defer t
   :custom
-  (org-roam-completion-system 'vertico)
+  (org-roam-completion-system 'default)
   (org-roam-completion-everywhere t)
   (org-roam-directory "~/org-roam")
   (org-roam-buffer-window-parameters '((no-delete-other-windows . t)))
@@ -326,26 +311,26 @@
  '(browse-url-firefox-program "c:/Program Files/Firefox/firefox")
  '(custom-safe-themes
    '("f654d73d7a0761cc4f7d99fffe4b16fce1b2d95844f37bc786e455cec744ac75"
-     "e8bd9bbf6506afca133125b0be48b1f033b1c8647c628652ab7a2fe065c10ef0"
-     "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
-     "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
-     "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
-     default))
+	 "e8bd9bbf6506afca133125b0be48b1f033b1c8647c628652ab7a2fe065c10ef0"
+	 "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
+	 "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
+	 "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
+	 default))
  '(dashboard-bookmarks-item-format "%s - %s")
  '(dashboard-bookmarks-show-base nil)
  '(grep-find-ignored-directories '(".src" ".svn" ".git"))
  '(grep-find-ignored-files
    '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
-     "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
+	 "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
  '(grep-highlight-matches t)
  '(ls-lisp-verbosity nil)
  '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
  '(org-agenda-files
    '("c:/home/jari/org-roam/sport/grifk.org"
-     "c:/home/jari/org-roam/my/schedule.org"))
+	 "c:/home/jari/org-roam/my/schedule.org"))
  '(org-export-with-broken-links 'mark)
- '(package-selected-packages '(claude-code ghostel inheritenv magit org-roam rg vterm)))
+ '(package-selected-packages nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
