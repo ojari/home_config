@@ -7,41 +7,75 @@ alias ll="ls -lAh"
 alias du1="du --max-depth=1"
 alias grep="grep --color"
 alias e="emacs -nw --init-directory=$HOME/home_config/lisp"
+alias emacs="emacs --init-directory=$HOME/home_config/lisp"
 alias ec=emacsclient
 alias dn=dotnet
 alias dnr="dotnet run"
 alias ems="emacs -nw --eval '(progn (magit-status) (delete-other-windows))'"
 alias idf=idf.py
-alias idfini=". $HOME/.espressif/tools/activate_idf_v5.5.2.sh"
+alias idfini=". /home/$USER/.espressif/tools/activate_idf_v5.5.3.sh"
 alias idfset="idf.py set-target esp32s3"
-alias idfbld0="idf.py -p /dev/ttyACM0 build flash monitor"
-alias idfbld1="idf.py -p /dev/ttyACM1 build flash monitor"
+alias idfmc="idf.py menuconfig"
+alias idfclean="idf.py fullclean"
+
+alias ib0="idf.py -p /dev/ttyACM0 build flash monitor"
+alias ib1="idf.py -p /dev/ttyACM1 build flash monitor"
+alias im0="idf.py -p /dev/ttyACM0 monitor --timestamps"
+alias im1="idf.py -p /dev/ttyACM1 monitor --timestamps"
+
+
+# ARM binary analysis
+alias arm-nm="arm-none-eabi-nm --size-sort -S"
+alias arm-size="arm-none-eabi-size"
+alias arm-objdump="arm-none-eabi-objdump -d"
+alias arm-strings="arm-none-eabi-strings"
+
+# CMake build helpers
+alias cmaked="cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+alias cmaker="cmake -B build -DCMAKE_BUILD_TYPE=Release"
+alias cmakeb="cmake --build build -j$(nproc)"
+
+# Binary inspection
+alias nm-size="nm --size-sort -S"
+
+# Python venv management
+mkenv() { python3 -m venv "${1:-.venv}" && echo "Created ${1:-.venv}"; }
+activate() { source "${1:-.venv}/bin/activate"; }
+mkvenv() { mkenv "$1" && activate "$1"; }
+
+alias py="python3"
+alias pip="python3 -m pip"
+alias pt="python3 -m pytest -v"
+
+# Serial ports
+alias ports="ls /dev/ttyACM* /dev/ttyUSB* /dev/ttyS* 2>/dev/null"
+
+# Git shortcuts
+alias gs="git status -s"
+alias gd="git diff"
+alias gds="git diff --staged"
+alias gl="git log --oneline --graph --decorate -20"
+alias gla="git log --oneline --graph --decorate --all -20"
+
+# Directory navigation
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+
+# Find and grep helpers
+ff() { find . -name "*$1*" 2>/dev/null; }
 
 edf ()
 {
     emacs -nw --eval "(ediff \"$1\" \"$2\")"
 }
 
-# if running bash
-if [ -n "$BASH_VERSION" ]; then
-    if [ -f "$HOME/.bashrc" ]; then
-	. "$HOME/.bashrc"
-    fi
-fi
-
 if [ "$OS" == "Windows_NT" ];
 then
     echo ".profile Windows"
-
-    alias p="/cygdrive/c/usr/Python35/python.exe"
-    alias n="/cygdrive/c/Program\ Files/nodejs/node.exe"
 else
     echo ".profile Linux"
 
-    alias p="python3"
-    alias m=make
-    # alias n="node"
-    
     #RUST_SRC_PATH=/mnt/src/rust-master/src
     PATH="$PATH:/opt/bin:/mnt/bin/gcc-arm/bin"
     export PATH
@@ -51,11 +85,9 @@ if [ -f "$HOME/custom.sh" ] ; then
     . "$HOME/custom.sh"
 fi
 
-
 if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
 fi
-
 
 # Simple powerline
 #
