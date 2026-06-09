@@ -1,19 +1,17 @@
 #!/bin/sh
 
 alias ls="ls --color=always --group-directories-first"
-# alias ec="tmux select-window -t 2 && emacsclient"
-# alias ta="tmux attach"
 alias ll="ls -lAh"
 alias du1="du --max-depth=1"
 alias grep="grep --color"
 alias e="emacs -nw --init-directory=$HOME/home_config/lisp"
 alias emacs="emacs --init-directory=$HOME/home_config/lisp"
-alias ec=emacsclient
-alias dn=dotnet
-alias dnr="dotnet run"
+# alias ec=emacsclient
+# alias dn=dotnet
+# alias dnr="dotnet run"
 alias ems="emacs -nw --eval '(progn (magit-status) (delete-other-windows))'"
 alias idf=idf.py
-alias idfini=". /home/$USER/.espressif/tools/activate_idf_v5.5.3.sh"
+alias idfini=". /home/$USER/.espressif/tools/activate_idf_v5.5.4.sh"
 alias idfset="idf.py set-target esp32s3"
 alias idfmc="idf.py menuconfig"
 alias idfclean="idf.py fullclean"
@@ -24,31 +22,13 @@ alias im0="idf.py -p /dev/ttyACM0 monitor --timestamps"
 alias im1="idf.py -p /dev/ttyACM1 monitor --timestamps"
 
 
-# ARM binary analysis
-alias arm-nm="arm-none-eabi-nm --size-sort -S"
-alias arm-size="arm-none-eabi-size"
-alias arm-objdump="arm-none-eabi-objdump -d"
-alias arm-strings="arm-none-eabi-strings"
-
-# CMake build helpers
-alias cmaked="cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-alias cmaker="cmake -B build -DCMAKE_BUILD_TYPE=Release"
-alias cmakeb="cmake --build build -j$(nproc)"
-
-# Binary inspection
-alias nm-size="nm --size-sort -S"
-
 # Python venv management
 mkenv() { python3 -m venv "${1:-.venv}" && echo "Created ${1:-.venv}"; }
 activate() { source "${1:-.venv}/bin/activate"; }
 mkvenv() { mkenv "$1" && activate "$1"; }
 
-alias py="python3"
 alias pip="python3 -m pip"
 alias pt="python3 -m pytest -v"
-
-# Serial ports
-alias ports="ls /dev/ttyACM* /dev/ttyUSB* /dev/ttyS* 2>/dev/null"
 
 # Git shortcuts
 alias gs="git status -s"
