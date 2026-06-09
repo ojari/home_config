@@ -307,8 +307,6 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(browse-url-chrome-program "C:/Program Files (x86)/Google/Chrome/Application/chrome")
- '(browse-url-firefox-program "c:/Program Files/Firefox/firefox")
  '(custom-safe-themes
    '("f654d73d7a0761cc4f7d99fffe4b16fce1b2d95844f37bc786e455cec744ac75"
 	 "e8bd9bbf6506afca133125b0be48b1f033b1c8647c628652ab7a2fe065c10ef0"
@@ -330,7 +328,12 @@
    '("c:/home/jari/org-roam/sport/grifk.org"
 	 "c:/home/jari/org-roam/my/schedule.org"))
  '(org-export-with-broken-links 'mark)
- '(package-selected-packages nil))
+ '(package-selected-packages nil)
+ '(speedbar-supported-extension-expressions
+   '(".cmake" "CMakeLists\\.txt" ".md" "\\.md$"
+	 ".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".el" ".emacs"
+	 ".java" ".js" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py"
+	 ".lua" ".s?html" ".ma?k" "[Mm]akefile\\(\\.in\\)?")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

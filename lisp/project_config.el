@@ -184,6 +184,28 @@ Filenames in `my-filelist-path` are considered relative to `my-base-dir`."
       (replace-match "[[\\2][\\1]]"))))
 
 
+(defvar rg-work-dir "/home/jari/tmpunp"
+  "Root directory searched by `rg-search-at-point'.")
+
+(defun rg--identifier-at-point ()
+  "Return the C/C++ identifier [a-zA-Z_0-9] surrounding point, or nil."
+  (save-excursion
+    (skip-chars-backward "a-zA-Z_0-9")
+    (let ((beg (point)))
+      (skip-chars-forward "a-zA-Z_0-9")
+      (unless (= beg (point))
+        (buffer-substring-no-properties beg (point))))))
+
+(defun rg-search-at-point ()
+  "Search for C/C++ identifier at point using rg in `rg-work-dir'.
+Results appear in *grep* buffer with `grep-mode' navigation."
+  (interactive)
+  (let ((id (rg--identifier-at-point))
+		(default-directory rg-work-dir))
+    (unless id
+      (user-error "No identifier at point"))
+	(rg id "everything" "/home/jari/tmpunp")))
+
 (defun my/org-roam-links ()
   "Use Vertico to select a forward or backward link related to the current Org-roam note, without duplicates."
   (interactive)
