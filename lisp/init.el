@@ -42,9 +42,7 @@
   (set-fringe-mode 10)
   (set-face-attribute 'default nil :font "Fira Code" :height 120)
   (if window-system
-      (progn (setq tramp-default-method "plink")
-             (tool-bar-mode -1)
-             (tooltip-mode -1))
+      (progn (tooltip-mode -1))
     (xterm-mouse-mode))
   :init
   (with-current-buffer (get-buffer-create "*scratch*")
@@ -100,21 +98,18 @@
   
   :config
   (setq icomplete-delay-completions-threshold 0)
-  (setq icomplete-compute-delay 0)
   (setq icomplete-show-matches-on-no-input t)
   (setq icomplete-hide-common-prefix nil)
   (setq icomplete-prospects-height 10)
   (setq icomplete-separator " . ")
-  (setq icomplete-with-completion-tables t)
   (setq icomplete-in-buffer t)
-  (setq icomplete-max-delay-chars 0)
   (setq icomplete-scroll t)
   (fido-vertical-mode 1))
 
 (use-package minibuffer
   :ensure nil
   :custom
-  (completion-styles '(partial-completion flex basic))
+  (completion-styles '(partial-completion basic emacs22))
   (completion-eager-update t)
   (completion-ignore-case t)
   (completions-detailed t)
@@ -164,14 +159,6 @@
              (string= lang "python")
              (string= lang "dot"))))
   (setq org-confirm-babel-evaluate 'my/org-confirm-babel-evaluate)
-  (setq org-agenda-files
-        (let* ((directory "~/org-roam")
-               (file-list (directory-files-recursively directory "task.*\\.org$"))
-               (additional-files '("~/org-roam/sport/grifk.org"
-                                   "~/org-roam/sport/esle_lentis.org"
-                                   "~/org-roam/sport/aikido.org"
-                                   "~/org-roam/schedule.org")))
-          (append file-list additional-files)))
   (setq org-publish-project-alist
         '(("github"
            :base-directory "~/ojari.github.io/"
@@ -180,7 +167,11 @@
            :recursive t
            :publishing-function org-html-publish-to-html
            :headline-levels 4
-           :auto-preamble t)
+           :auto-preamble t
+		   :style "<link rel=\"stylesheet\"
+                 href=\"worg.css\"
+                 type=\"text/css\"/>" )
+
           ("org-roam"
            :base-directory "~/org-roam/"
            :base-extension "org"
@@ -213,8 +204,14 @@
   :ensure nil
   :defer t
   :hook
-  ((c-mode   . (lambda () (c-set-style "stroustrup")))
-   (c++-mode . (lambda () (c-set-style "stroustrup")))))
+  ((c-mode   . (lambda ()
+                 (c-set-style "stroustrup")
+                 (setq indent-tabs-mode nil)
+                 (setq c-basic-offset 4)))
+   (c++-mode . (lambda ()
+                 (c-set-style "stroustrup")
+                 (setq indent-tabs-mode nil)
+                 (setq c-basic-offset 4)))))
 
 (use-package project
   :ensure nil
@@ -230,7 +227,7 @@
   :ensure t
   :defer t
   :custom
-  (rg-root-directory "~/unplugged-firmware/un-942-new-modem"))
+  (rg-root-directory "~/"))
 
 (use-package which-key
   :ensure t
@@ -321,19 +318,18 @@
    '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
 	 "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
  '(grep-highlight-matches t)
- '(ls-lisp-verbosity nil)
  '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
  '(magit-fetch-arguments nil)
- '(org-agenda-files
-   '("c:/home/jari/org-roam/sport/grifk.org"
-	 "c:/home/jari/org-roam/my/schedule.org"))
  '(org-export-with-broken-links 'mark)
- '(package-selected-packages nil)
+ '(package-selected-packages
+   '(claude-code consult dash eat ghostel inheritenv magit memoize
+				 org-roam rg s))
+ '(safe-local-variable-values '((gud-gdb-command-name . "gdb -i=mi build_debug/pctests")))
  '(speedbar-supported-extension-expressions
    '(".cmake" "CMakeLists\\.txt" ".md" "\\.md$"
-	 ".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".el" ".emacs"
-	 ".java" ".js" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py"
-	 ".lua" ".s?html" ".ma?k" "[Mm]akefile\\(\\.in\\)?")))
+	 ".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".el" ".emacs" ".java"
+	 ".js" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py" ".lua" ".s?html"
+	 ".ma?k" "[Mm]akefile\\(\\.in\\)?")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
