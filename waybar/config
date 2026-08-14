@@ -21,13 +21,14 @@
         "pulseaudio",
         "network",
         "power-profiles-daemon",
+        "custom/electricity",
         "cpu",
         "memory",
         // "temperature",
         "backlight",
         "keyboard-state",
         "battery",
-        "battery#bat2",
+        // "battery#bat2",
         "clock",
         "tray",
         "custom/power"
@@ -86,11 +87,18 @@
         "format-alt": "{:%Y-%m-%d}"
     },
     "cpu": {
-        "format": "{usage}% ",
-        "tooltip": false
+        "format": "",
+        "tooltip-format": "{usage}%",
+        "states": {
+            "critical": 80
+        }
     },
     "memory": {
-        "format": "{}% "
+        "format": " ",
+        "states": {
+            "warning": 50,
+            "critical": 70
+        }
     },
     "temperature": {
         // "thermal-zone": 2,
@@ -111,10 +119,10 @@
             "warning": 30,
             "critical": 15
         },
-        "format": "{capacity}% {icon}",
-        "format-full": "{capacity}% {icon}",
-        "format-charging": "{capacity}% ",
-        "format-plugged": "{capacity}% ",
+        "format": "{icon}",
+        "format-full": "{icon}",
+        "format-charging": "{icon} ",
+        "format-plugged": "{icon} ",
         "format-alt": "{time} {icon}",
         // "format-good": "", // An empty format will hide the module
         // "format-full": "",
@@ -137,8 +145,8 @@
     "network": {
         // "interface": "wlp2*", // (Optional) To force the use of this interface
         "format-wifi": "{essid} ({signalStrength}%) ",
-        "format-ethernet": "{ifname}/{cidr} ",
-        "tooltip-format": "{ifname} via {gwaddr} ",
+        "format-ethernet": "{ifname}/{cidr}",
+        "tooltip-format": "{essid} {ifname} via {gwaddr}",
         "format-linked": "{ifname} (No IP) ",
         "format-disconnected": "Disconnected ⚠",
         "format-alt": "{ifname}: {ipaddr}/{cidr}"
@@ -200,6 +208,13 @@
     	"on-click": "swaync-client -t -sw",
     	"on-click-right": "swaync-client -d -sw",
     	"escape": true
+    },
+    "custom/electricity": {
+        "format": " {text}",
+        "return-type": "json",
+        "interval": 300,
+        "tooltip": true,
+        "exec": "/home/jari/home_config/waybar/electricity_price.py 2> /dev/null"
     },
     "custom/power": {
         "format" : "⏻ ",

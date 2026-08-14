@@ -88,6 +88,7 @@ button:hover {
 #pulseaudio,
 #wireplumber,
 #custom-media,
+#custom-electricity,
 #tray,
 #mode,
 #idle_inhibitor,
@@ -114,11 +115,11 @@ button:hover {
 }
 
 #clock {
-    background-color: #303030;
+    /* background-color: #303030; */
 }
 
 #battery {
-    background-color: #303030;
+    /* background-color: #303030; */
     color: #dcdccc;
 }
 
@@ -145,6 +146,18 @@ button:hover {
     animation-direction: alternate;
 }
 
+#cpu.critical {
+    color: #f53c3c;
+}
+
+#memory.warning {
+    color: #f9ca24;
+}
+
+#memory.critical {
+    color: #f53c3c;
+}
+
 #power-profiles-daemon {
     padding-right: 15px;
 }
@@ -167,12 +180,12 @@ label:focus {
     background-color: #000000;
 }
 
-#cpu {
+#group-hardware {
     background-color: #303030;
 }
 
-#memory {
-    background-color: #303030;
+#group-hardware > #memory {
+    padding-left: 0;
 }
 
 #disk {
@@ -225,6 +238,22 @@ label:focus {
 
 #temperature {
     background-color: #303030;
+}
+
+#custom-electricity.cheap {
+    background-color: #2a5c45;
+}
+
+#custom-electricity.normal {
+    background-color: #303030;
+}
+
+#custom-electricity.expensive {
+    background-color: #f53c3c;
+}
+
+#custom-electricity.error {
+    background-color: #964B00;
 }
 
 #temperature.critical {
