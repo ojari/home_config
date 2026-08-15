@@ -173,8 +173,8 @@
     "custom/launcher": {
         "format": "", // or any icon/text you like
 	"tooltip": false,
-	"on-click": "wmenu-run", // this launches wmenu
-	"on-click-right": "wmenu-run -l 20", // optional
+	"on-click": "rofi -show drun", // this launches wmenu
+	// "on-click-right": "wmenu-run -l 20", // optional
 	"escape": true
     },
     "custom/media": {
