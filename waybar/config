@@ -17,7 +17,7 @@
         "sway/window"
     ],
     "modules-right": [
-        "idle_inhibitor",
+        // "idle_inhibitor",
         "pulseaudio",
         "network",
         "power-profiles-daemon",
@@ -41,14 +41,13 @@
         "format": " {icon} ",
         "format-icons": {
             "1:term": "",
-            "2:code": "",
+            "2:edit": "",
             "3:web": "",
-            "4:emacs": "e",
-            "5:notes": "",
-            "6:misc": "",
-            "urgent": "",
+            "4:notes": "",
+            "5:misc": "⋯",
+            "urgent": ""
             // "focused": "",
-            "default": ""
+            //"default": ""
         }
     },
     "keyboard-state": {

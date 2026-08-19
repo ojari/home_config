@@ -17,11 +17,11 @@ set $menu rofi -show drun
 
 # Workspace names (number prefix keeps `workspace number $wsN` sorting/matching working)
 set $ws1 "1:term"
-set $ws2 "2:code"
+set $ws2 "2:edit"
 set $ws3 "3:web"
-set $ws4 "4:emacs"
-set $ws5 "5:notes"
-set $ws6 "6:misc"
+set $ws4 "4:notes"
+set $ws5 "5:misc"
+set $ws6 "6:"
 set $ws7 "7:"
 set $ws8 "8:"
 set $ws9 "9"
@@ -264,17 +264,22 @@ client.urgent           #cc9393 #2f2f2f #ffffff #3f3f3f #2f2f2f
 # default_border none
 # default_floating_border none
 default_border pixel 2
+default_floating_border normal
 titlebar_padding 1
 
 assign [app_id="foot"] $ws1
 assign [app_id="code"] $ws2
+assign [app_id="emacs"] $ws2
+workspace $ws2, layout tabbed
 assign [app_id="org.mozilla.firefox"] $ws3
-assign [app_id="emacs"] $ws4
-assign [app_id="obsidian"] $ws5
+assign [app_id="obsidian"] $ws4
 
-# assign [app_id="org.gnome.Evolution"] $ws7
-assign [app_id="Slack"] $ws6
-workspace $ws6, layout tabbed
+# assign [app_id="org.gnome.Evolution"] $ws5
+assign [app_id="slack"] $ws5
+assign [app_id="org.keepassxc.KeePassXC"] $ws5
+assign [app_id="chrome-pkooggnaalmfkidjmlhoelhdllpphaga-Default"] $ws5
+assign [app_id="org.gnome.Nautilus"] $ws5
+workspace $ws5, layout tabbed
 
 output DP-6 disable
 
