@@ -1,0 +1,4 @@
+# Allow jari to run dnf (and the dnf5 binary it symlinks to on Fedora) without
+# a sudo password. Keep this scoped to package management only — NOPASSWD on
+# a general shell or editor is equivalent to unauthenticated root.
+jari ALL=(root) NOPASSWD: /usr/bin/dnf, /usr/bin/dnf5

@@ -14,4 +14,13 @@ ln -s ~/home_config/waybar/style.css ~/.config/waybar/style.css
 mkdir ~/.config/foot
 ln -s ~/home_config/foot/foot.ini ~/.config/foot/foot.ini
 
+ln -s ~/home_config/kitty ~/.config/kitty
+
 ln -s ~/home_config/xinitrc ~/.xinitrc
+
+# sudoers.d drop-ins must be root-owned and mode 0440, so they're installed
+# (not symlinked) and validated with visudo before being put in place.
+for f in ~/home_config/sudoers.d/*; do
+  name=$(basename "$f")
+  sudo visudo -c -f "$f" && sudo install -m 0440 -o root -g root "$f" "/etc/sudoers.d/$name"
+done

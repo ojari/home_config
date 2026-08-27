@@ -36,6 +36,8 @@
   (gdb-many-windows nil)
   (explicit-shell-file-name shell-file-name)
   :config
+  (require 'server)
+  (unless (server-running-p) (server-start))
   (show-paren-mode t)
   (menu-bar-mode -1)
   (tool-bar-mode -1)
