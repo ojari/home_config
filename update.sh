@@ -16,6 +16,11 @@ ln -s ~/home_config/foot/foot.ini ~/.config/foot/foot.ini
 
 ln -s ~/home_config/kitty ~/.config/kitty
 
+mkdir ~/.config/fish
+ln -s ~/home_config/fish/config.fish ~/.config/fish/config.fish
+mkdir ~/.config/fish/functions
+ln -s ~/home_config/fish/functions/fish_prompt.fish ~/.config/fish/functions/fish_prompt.fish
+
 ln -s ~/home_config/xinitrc ~/.xinitrc
 
 # sudoers.d drop-ins must be root-owned and mode 0440, so they're installed
