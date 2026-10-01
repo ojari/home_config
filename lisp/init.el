@@ -91,33 +91,43 @@
 
 ;;; ── Completion ──────────────────────────────────────────────────────────────
 
+;; UI: built-in fido-vertical-mode (icomplete + ido-like keys).
 (use-package icomplete
   :ensure nil
   :custom
   (icomplete-compute-delay 0)
   (icomplete-max-delay-chars 0)
-  (icomplete-with-completion-tables t)
-  
+  (icomplete-delay-completions-threshold 0)
+  (icomplete-show-matches-on-no-input t)
+  (icomplete-hide-common-prefix nil)
+  (icomplete-prospects-height 10)
+  (icomplete-in-buffer t)
+  (icomplete-scroll t)
   :config
-  (setq icomplete-delay-completions-threshold 0)
-  (setq icomplete-show-matches-on-no-input t)
-  (setq icomplete-hide-common-prefix nil)
-  (setq icomplete-prospects-height 10)
-  (setq icomplete-separator " . ")
-  (setq icomplete-in-buffer t)
-  (setq icomplete-scroll t)
+  ;; Candidates with no explicit sort order are sorted by length, then
+  ;; alphabetically (hard-coded in `completion-all-sorted-completions').
+  ;; Sort purely alphabetically instead; history items still come first.
+  (advice-add 'minibuffer--sort-by-length-alpha :override
+              (lambda (elems) (sort elems #'string-version-lessp))
+              '((name . my/sort-alpha)))
+  ;; fido forces `completion-styles' to (flex), whose score also favours
+  ;; short names.  Use the global styles below instead (flex as fallback).
+  (defun my/fido-use-global-styles ()
+    (when (and fido-mode (local-variable-p 'completion-styles))
+      (kill-local-variable 'completion-styles)))
+  (add-hook 'minibuffer-setup-hook #'my/fido-use-global-styles 90)
   (fido-vertical-mode 1))
 
 (use-package minibuffer
   :ensure nil
   :custom
-  (completion-styles '(partial-completion basic emacs22))
-  (completion-eager-update t)
+  (completion-styles '(substring partial-completion flex))
+  (completion-category-overrides '((file (styles partial-completion substring))))
   (completion-ignore-case t)
   (completions-detailed t)
   (completions-format 'one-column)
-  (completions-max-height nil)
-  (completions-sort 'historical)
+  (completions-max-height 20)
+  (completions-sort 'alphabetical)
   (enable-recursive-minibuffers t)
   (read-buffer-completion-ignore-case t)
   (read-file-name-completion-ignore-case t))
@@ -266,6 +276,42 @@
   :ensure t
   :defer t)
 
+(defun my/send-to-vterm (beg end)
+  "Send the region, or the current line, to vterm.
+Line breaks inside the text go as Shift+Return; one Return goes at the end."
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (list (line-beginning-position) (line-end-position))))
+  (require 'vterm)
+  (let* ((text (string-trim-right
+                (buffer-substring-no-properties beg end) "\n+"))
+         (lines (split-string text "\n"))
+         (buf (or (get-buffer "*vterm*")
+                  (read-buffer "Send to vterm buffer: " nil t
+                               (lambda (b)
+                                 (with-current-buffer (if (consp b) (car b) b)
+                                   (eq major-mode 'vterm-mode)))))))
+    (with-current-buffer buf
+      (while lines
+        (vterm-send-string (pop lines))
+        (when lines
+          (vterm-send-key "<return>" t)))   ; Shift+Return
+      (vterm-send-return))                  ; final Return
+    (deactivate-mark)
+    (display-buffer buf)))
+
+(global-set-key (kbd "C-c v s") #'my/send-to-vterm)
+
+(use-package aidermacs
+  :bind (("C-c a" . aidermacs-transient-menu))
+  :custom
+  (aidermacs-backend 'vterm)
+  (aidermacs-default-model "Qwen3.5-9B-IQ4_XS")
+  (aidermacs-extra-args
+   '("--openai-api-base" "http://127.0.0.1:8080/v1"
+     "--openai-api-key" "local")))
+
 ;;; ── Extras ──────────────────────────────────────────────────────────────────
 
 ;; ISO week numbers in calendar
@@ -324,8 +370,8 @@
  '(magit-fetch-arguments nil)
  '(org-export-with-broken-links 'mark)
  '(package-selected-packages
-   '(claude-code consult dash eat ghostel inheritenv magit memoize
-				 org-roam rg s))
+   '(aidermacs consult eat inheritenv magit markdown-mode org-roam
+			   projectile rg treemacs vterm))
  '(safe-local-variable-values '((gud-gdb-command-name . "gdb -i=mi build_debug/pctests")))
  '(speedbar-supported-extension-expressions
    '(".cmake" "CMakeLists\\.txt" ".md" "\\.md$"

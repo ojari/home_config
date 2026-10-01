@@ -51,7 +51,7 @@
 (global-set-key (kbd "C-j") 'my-jmenu)
 (define-key my-jmenu "a" 'copilot-chat-display)
 ;;(define-key my-jmenu "a" 'avy-goto-char-2)
-(define-key my-jmenu "b" 'consult-buffer)
+;;(define-key my-jmenu "b" 'consult-buffer)
 ;;(define-key my-jmenu "c" 'avy-copy-line)
 (define-key my-jmenu "c" 'my/compile)
 ;;(define-key my-jmenu "d" 'arm-gdb)
@@ -72,7 +72,7 @@
 (define-key my-jmenu "q" 'my/grep-in-filelist)
 ;;(define-key my-jmenu "p" 'eclim-project-build)
 (define-key my-jmenu "r" 'rg-search-at-point)
-;;(define-key my-jmenu "s" 'org-roam-db-sync)
+(define-key my-jmenu "s" 'my/send-to-vterm)
 (define-key my-jmenu "t" 'eshell)
 
 ;(global-set-key (kbd "<C-m>") 'newline)

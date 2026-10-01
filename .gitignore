@@ -8,3 +8,5 @@ lisp/org-roam.db
 /lisp/ido.last
 /lisp/history
 /lisp/tramp
+.aider*
+lisp/url/cache/
