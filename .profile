@@ -10,8 +10,8 @@ alias ls="ls --color=always --group-directories-first --hyperlink=auto"
 alias ll="ls -lAh"
 alias du1="du --max-depth=1"
 alias grep="grep --color"
-alias e="emacs -nw --init-directory=$HOME/home_config/lisp"
-alias emacs="emacs --init-directory=$HOME/home_config/lisp"
+alias e="GTK_THEME=Greybird-dark emacs -nw --init-directory=$HOME/home_config/lisp"
+alias emacs="GTK_THEME=Greybird-dark emacs --init-directory=$HOME/home_config/lisp"
 # alias ec=emacsclient
 # alias dn=dotnet
 # alias dnr="dotnet run"

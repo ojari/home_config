@@ -38,16 +38,14 @@
     (compile (format "pwsh jt/make.ps1 %s" target))))
 
 (set-register ?e "senior sw engineer")
-(set-register ?i ":CATEGORY: AI\n")
-(set-register ?l ":CATEGORY: Learn\n")
-(set-register ?w ":CATEGORY: SW\n")
-(set-register ?s ":CATEGORY: Sport\n")
-(set-register ?a "#+filetags:  :abb:\n")
 (set-register ?p "#+begin_src python\n\n#+end_src\n")
 
 (setq magit-repository-directories
       '(
-	("/Users/ett12814/org-roam" . 1)))
+		("/home/jari/work/kajo" . 1)
+		("/home/jari/sync/obsidian" . 1)
+		("/home/jari/home_config" . 1)
+		))
 
 (setq org-roam-capture-templates
       '(

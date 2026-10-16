@@ -99,7 +99,8 @@ mymainmenu = awful.menu({
                -- { "Debian", debian.menu.Debian_menu.Debian },
                { "Terminal", terminal, "/usr/share/icons/hicolor/48x48/apps/xterm.png"},
                { "Kitty", "kitty", "/usr/share/icons/hicolor/48x48/apps/xterm.png"},
-               { "Vivaldi", "vivaldi", "/usr/share/icons/hicolor/48x48/apps/vivaldi.png"},
+               -- { "Vivaldi", "vivaldi", "/usr/share/icons/hicolor/48x48/apps/vivaldi.png"},
+               { "Firefox", "firefox", "/usr/share/icons/hicolor/48x48/apps/firefox.png"},
                { "Emacs",   "emacs --init-directory=/home/jari/home_config/lisp",   "/usr/share/icons/hicolor/48x48/apps/emacs.png"},
                { "Code",    "code",    "/usr/share/pixmaps/vscode.png"},
                menu_terminal
