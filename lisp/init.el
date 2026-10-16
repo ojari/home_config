@@ -343,6 +343,7 @@ Line breaks inside the text go as Shift+Return; one Return goes at the end."
 ;;; ── Load external config ────────────────────────────────────────────────────
 
 (load-library "~/home_config/lisp/project_config.el")
+(load-library "~/home_config/lisp/danbooru.el")
 (load-library "~/home_config/lisp/keymap.el")
 
 ;;; ── Custom (managed by Emacs — do not edit manually) ────────────────────────
