@@ -1,5 +1,8 @@
 # Writing Anima prompts with danbooru.el
 
+For reusable people, outfits, poses, and environments, see
+[Reusable prompt libraries](danbooru-library.md).
+
 Researched 2026-10-16 against the [official CircleStone Labs model card](https://huggingface.co/circlestone-labs/Anima#prompting).
 
 Anima accepts tags, English captions, or a mixture. Its authors recommend
@@ -19,7 +22,9 @@ See the [version and settings notes](https://huggingface.co/circlestone-labs/Ani
 
 ## What the compiler now does
 
-- Reads Lisp or JSON without evaluating prompt forms.
+- Reads Lisp forms as data without evaluating them.
+- Expands `:def` names automatically in tag data and imports definitions
+  with `:include`. Undefined symbols and quoted strings keep their usual meaning.
 - Lowercases symbol tags and converts underscores to spaces by default:
   `LONG_HAIR` becomes `long hair`, and `SCORE_7` becomes `score_7`.
   Set `danbooru-lowercase-tags` to nil to preserve symbol case.
@@ -30,14 +35,10 @@ See the [version and settings notes](https://huggingface.co/circlestone-labs/Ani
 - Expands `(:artist Some_Artist "@Other Artist")` to
   `@some artist, @other artist`. Place it where you want artist tags to appear.
   This explicit context normalizes quoted artist names too. It also works
-  inside tag lists, including comic `:tags` and variation values.
+  inside tag lists, definitions, and variation values.
 - Appends each `(:caption "...")` after the tags on a separate line. Captions
   support variations, preserve prose capitalization, and gain a final period
   if needed. Caption-only prompts are supported.
-- In comics, combines captions from the top level, defaults, scene and panel
-  in that order. Each actor retains a separate appearance/outfit/pose block.
-  Positions such as `left` become `on the left`; existing phrases such as
-  `"beside the door"` are retained.
 
 Tag order remains authored order. No quality, rating or negative tags are
 inserted automatically, and generation settings remain under your control.
@@ -66,10 +67,6 @@ Compiled positive prompt:
 An adult woman with short brown hair and glasses holds a ceramic cup with both hands beside a cafe window. Warm sunlight falls across her green eyes and sweater while the tables behind her remain softly shaded.
 ```
 
-JSON objects accept `"caption"` as a string or array of strings and `"artist"`
-as a name or array of names. JSON tag strings retain their literal spelling;
-write `"long hair"`, rather than `"long_hair"`.
-
 Use tags for identifying visible attributes and sentences for who holds what,
 where people stand, and how they interact. Prefer a few precise details over
 synonyms or conflicting tags. These are authoring choices, not a measured
@@ -79,3 +76,34 @@ keeping the checkpoint, seed, dimensions and sampling settings fixed.
 Reload with `M-x load-file` and select `danbooru.el`. Existing prompt files
 are not rewritten; the updated starter is used for a new empty prompt buffer.
 Compiler tests and example compilation do not generate images.
+
+## Generate selected variation alternatives
+
+In a grouped Lisp prompt, select complete alternatives inside one `:vary`
+and use the usual commands: `C-c C-p` previews the subset, `C-c C-c`
+generates it, and `C-c C-r` generates it with a fresh seed.
+
+```lisp
+(1girl solo $POSE)
+(outdoors garden)
+(:vary $POSE
+ standing
+ walking
+ sitting
+ (kneeling holding_flower))
+```
+
+Select `sitting` through the end of `(kneeling holding_flower)` to generate
+only those two images. The same works for the last two alternatives in a
+list of twenty. Leave the `:vary` header and its closing parenthesis outside
+the selection. Each string or nested list is one complete alternative;
+partial alternatives report an error before previewing or queuing images.
+
+The surrounding tags, captions, and settings still apply. Other `:vary`
+axes retain all their alternatives, so two selected poses and three
+expressions produce six images. Deactivate the region with `C-g` to use
+all alternatives again.
+
+Selection does not edit the buffer or saved file. Generated image metadata
+records the effective prompt source with only the selected alternatives,
+so regenerating that image keeps the same subset.

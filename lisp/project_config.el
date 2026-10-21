@@ -40,9 +40,13 @@
 (set-register ?e "senior sw engineer")
 (set-register ?p "#+begin_src python\n\n#+end_src\n")
 
+(setq rmail-enable-mime t
+	  rmail-mime-prefer-html t)
+
 (setq magit-repository-directories
       '(
 		("/home/jari/work/kajo" . 1)
+		("/home/jari/work/yaha" . 1)
 		("/home/jari/sync/obsidian" . 1)
 		("/home/jari/home_config" . 1)
 		))

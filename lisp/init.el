@@ -249,8 +249,11 @@
 (use-package dired
   :ensure nil
   :defer t
+  :hook ((dired-mode . dired-hide-details-mode)
+         (dired-mode . my/dired-highlight-filename))
   :bind
   (:map dired-mode-map
+        ([remap dired-find-file] . my/dired-open-file)
         ("e" . my/dired-ediff-files)
         ("j" . dired-up-directory)
         ("l" . dired-find-file)
@@ -258,6 +261,30 @@
         ("i" . dired-previous-line)
         ("q" . quit-window))
   :config
+  (require 'hl-line)
+  (defun my/dired-open-file ()
+    "Open MP4 files in mpv, and other entries normally."
+    (interactive)
+    (let ((file (dired-get-file-for-visit)))
+      (if (and (not (file-directory-p file))
+               (equal (downcase (or (file-name-extension file) "")) "mp4"))
+          (set-process-query-on-exit-flag
+           (start-process "dired-mpv" nil "mpv" "--" file) nil)
+        (dired-find-file))))
+
+  (defun my/dired-filename-range ()
+    "Return the filename bounds on the current Dired line."
+    (save-excursion
+      (when-let* ((beg (dired-move-to-filename)))
+        (dired-move-to-end-of-filename t)
+        (cons beg (point)))))
+
+  (defun my/dired-highlight-filename ()
+    "Highlight the current filename instead of showing a character cursor."
+    (setq-local hl-line-range-function #'my/dired-filename-range)
+    (setq-local cursor-type nil)
+    (hl-line-mode 1))
+
   (defun my/dired-ediff-files ()
     (interactive)
     (let ((files (dired-get-marked-files))

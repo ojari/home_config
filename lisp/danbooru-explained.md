@@ -25,7 +25,7 @@ extensions, see [Writing Anima prompts](danbooru-anima.md).
 
 ```mermaid
 flowchart TD
-    A[Prompt buffer or command input] --> B[Read Lisp data or JSON]
+    A[Prompt buffer or command input] --> B[Read Lisp data and expand definitions]
     B --> C[Classify tags and directives]
     C --> D[Validate and expand variations]
     D --> E[List of image jobs]
@@ -101,7 +101,7 @@ You do **not** put an apostrophe before each prompt form. `danbooru--read-forms`
 Likewise, `$POSE` has no built-in special meaning in Lisp. This package interprets its name as a substitution marker. `:vary` is a keyword that the parser recognizes as a directive.
 
 > [!tip] Distinguish the two languages
-> `danbooru.el` is executable Emacs Lisp. A `.danbooru` file is a small language built from Lisp data. For example, `(+ 2 3)` in a prompt does not calculate `5`; the legacy flattener treats its contents as tags.
+> `danbooru.el` is executable Emacs Lisp. A `.danbooru` file is a small language built from Lisp data. For example, `(+ 2 3)` in a prompt does not calculate `5`; the flattener treats its contents as tags.
 
 ### How to read a function definition
 
@@ -199,11 +199,7 @@ Access and update fields with:
 
 Keeping the result of `plist-put` matters: adding a property can change the list's head.
 
-Both “absent property” and “property whose value is `nil`” return `nil` from `plist-get`. Use `plist-member` to distinguish them. The comic compiler relies on this distinction:
-
-- Omit `:actors` to include the scene's cast.
-- Supply `:actors ()` to request no actors.
-- Supply `:cfg nil` to leave CFG to the backend, even if a previous layer supplied a number.
+Both “absent property” and “property whose value is `nil`” return `nil` from `plist-get`. Use `plist-member` to distinguish them. Parameter validation uses this distinction to validate only settings that were supplied in the prompt.
 
 ### Accumulating lists
 
@@ -232,7 +228,7 @@ The definitions fall into different categories:
 | `defgroup` | `danbooru` | Group settings in Emacs Customize. |
 | `defcustom` | `danbooru-server`, `danbooru-width` | Define user settings with documentation and customization types. |
 | `defvar` | `danbooru--queue`, `danbooru--process` | Define variables for shared runtime state. |
-| `defvar-local` | `danbooru-source`, `danbooru-panel` | Give each buffer its own value when assigned there. |
+| `defvar-local` | `danbooru-source` | Give each buffer its own value when assigned there. |
 | `defconst` | `danbooru--directives` | Declare a value intended to stay constant. |
 
 `defcustom` describes a setting's expected type for Customize; the package separately validates generation parameters in its compiler. `defconst` expresses intent rather than making mutation impossible.
@@ -256,20 +252,17 @@ An Emacs **buffer** holds text. **Point** is its cursor position. `with-temp-buf
 
 `condition-case` catches errors. The reader converts incomplete or invalid forms into `user-error` messages containing the form's starting line. `user-error` signals a problem with the user's input.
 
-`danbooru--parse` chooses the input format by inspecting the beginning of the text. A leading `[` or `{` after spaces, tabs, or newlines selects JSON; otherwise it reads Lisp forms. `danbooru--json-forms` converts supported JSON into forms the same parser can process.
+`danbooru--parse` reads Lisp data and calls `danbooru--library-forms` to import libraries, collect `:def` definitions, and expand matching symbols. Prompt files use this single format. JSON is used for backend requests and saved image metadata.
 
-For example, these inputs express the same legacy prompt:
+For example:
 
 ```lisp
-(solo long_hair)
+(:def appearance (long_hair red_eyes))
+(solo appearance)
 (:seed 42)
 ```
 
-```json
-{"tags": ["solo", "long hair"], "seed": 42}
-```
-
-JSON tag values are strings, so they follow the flattener's string rules: `"long_hair"` stays `"long_hair"`. An unquoted Lisp symbol `long_hair` becomes `"long hair"`. The JSON path supports legacy tags and options; it does not implement JSON character/scene/panel definitions.
+The definition expands before ordinary tags and generation options are classified. A quoted string such as `"appearance"` remains literal.
 
 The parser separates ordinary tag forms from recognized directives:
 
@@ -279,11 +272,9 @@ flowchart LR
     B -->|Ordinary tag form| C[Collect tag trees]
     B -->|vary| D[Collect marker and alternatives]
     B -->|Generation option or neg| E[Collect settings or negatives]
-    B -->|Comic definition| F[Collect story forms]
     C --> G[Parsed plist]
     D --> G
     E --> G
-    F --> G
 ```
 
 An unknown keyword directive produces an error. A simplified parsed result looks like:
@@ -291,7 +282,6 @@ An unknown keyword directive produces an error. A simplified parsed result looks
 ```elisp
 (:tags ((solo $POSE))
  :vary (("$POSE" sitting standing))
- :story nil
  :seed 42)
 ```
 
@@ -312,7 +302,7 @@ The flattener examines the input's type with `cond`:
 | String | Substitute markers inside it, trim outside whitespace, keep the remaining string together. |
 | Other atom | Convert it to text with `format`. |
 
-The legacy flattener also skips reader wrappers for quote, backquote, and commas. Comic tag validation is stricter about accepted data.
+The flattener also skips reader wrappers for quote, backquote, and commas. Definitions are validated as tag data before expansion.
 
 Consider:
 
@@ -333,7 +323,6 @@ flowchart TD
     C --> F[long_hair]
     B --> G[Flat list of strings]
     E --> G
-    F --> G
     D --> G
     G --> H[Remove duplicates and join]
     H --> I["solo, red eyes, long hair"]
@@ -341,7 +330,7 @@ flowchart TD
 
 This is **recursion**: the function handles a small part of the structure by calling itself on smaller structures. Atoms and `nil` are stopping cases.
 
-`danbooru--tag-name` lowercases symbol tags by default and changes underscores to spaces, except names beginning with `score_` or `$`. Variation markers retain their case. Quoted strings retain their capitalization and underscores. Joining removes duplicate complete strings, not individual words or comma-separated fragments inside one string. The explicit `(:artist ...)` wrapper is an exception: it normalizes its names and adds `@`. `:caption` strings are compiled separately from tags and appended as sentences; legacy prompts use newlines between these sections.
+`danbooru--tag-name` lowercases symbol tags by default and changes underscores to spaces, except names beginning with `score_` or `$`. Variation markers retain their case. Quoted strings retain their capitalization and underscores. Joining removes duplicate complete strings, not individual words or comma-separated fragments inside one string. The explicit `(:artist ...)` wrapper is an exception: it normalizes its names and adds `@`. `:caption` strings are compiled separately from tags and appended as sentences; prompts use newlines between these sections.
 
 ### Substitution and cycle detection
 
@@ -359,7 +348,7 @@ For a string such as `"A person is $POSE"`, the replacement's tags are joined be
 
 ## 7. Variations produce combinations of jobs
 
-For legacy prompts, `danbooru--expand-legacy` creates one job for every combination of variation values:
+`danbooru--expand-prompt` creates one job for every combination of variation values:
 
 ```lisp
 (solo $POSE $FACE)
@@ -391,83 +380,52 @@ The nested `cl-loop` expressions build this **Cartesian product**. Each iteratio
 
 The result is a list of plists containing `:label`, `:prompt`, `:seed`, and `:params`. No external process has started yet.
 
-## 8. Comic compilation resolves named definitions
+## 8. Definitions compose reusable tag trees
 
-When parsed `:story` data exists, `danbooru--expand` uses `danbooru--expand-story` instead of the legacy compiler.
-
-A small complete example:
+All reusable prompt data uses `:def`:
 
 ```lisp
-(:defaults :tags (manga) :seed 42)
-(:character aya :description "A woman" :tags (long_hair))
-(:outfit casual :tags (sweater))
-(:scene cafe :tags (indoors) :cast ((aya :outfit casual)))
-(:panel hello :scene cafe :actors ((aya :pose (smiling))))
+(:def person/aya (long_hair hairclip))
+(:def outfit/casual (sweater))
+(:def look/aya (person/aya outfit/casual))
+(1girl solo look/aya smile)
 ```
 
-It compiles to this prompt:
+It compiles to:
 
 ```text
-manga, indoors. 1 person. A woman: long hair, sweater, smiling.
+1girl, solo, long hair, hairclip, sweater, smile
 ```
 
-```mermaid
-flowchart TD
-    A[Character aya: appearance and description] --> E[Actor sentence]
-    B[Outfit casual: clothing tags] --> E
-    C[Scene cafe: tags and default cast] --> D[Panel hello]
-    C --> E
-    D -->|Actor pose and overrides| E
-    F[Shared and default tags] --> G[Panel prompt]
-    D -->|Scene, camera, panel tags and action| G
-    E --> G
-    G --> H[Panel jobs and local variants]
-```
+`danbooru--library-forms` first collects all definitions into an alist. It then expands the references, so definitions can refer to names declared later. Definitions emit nothing by themselves.
 
-`danbooru--story` first collects named definitions into alists, then validates their references. This allows a panel to refer to a scene defined later in the file. Panels are restored to source order before compilation.
+`danbooru--resolve-block-tree` recursively replaces matching symbols with their value trees. A hash table caches each expansion. A list of names currently being resolved detects circular definitions. Undefined symbols remain tags and strings remain literal.
 
-The compiler validates property names, duplicate definitions, actor references, parameter values, and variation data. It checks every scene's cast, including scenes unused by panels. It does not check tag spelling against the completion vocabulary.
+`danbooru--include-forms` reads libraries relative to the including file. Libraries contain only definitions and further includes. It detects include cycles and imports each canonical path once.
 
-Each actor is rendered separately by `danbooru--actor-prompt`. It combines character appearance, outfit, pose, expression, and actor tags. Deduplication happens inside that actor's sentence, so two people can each retain a clothing tag such as `boots`.
+Preview and generation save a self-contained source snapshot after expansion, so later regeneration does not need the original library files.
 
-The panel's actor properties override the scene's outfit defaults. `:outfit nil` explicitly removes that default. Omitting `:actors` uses the cast; an empty `:actors` produces `"No people."`.
-
-### Overriding settings
-
-For comic generation options, later layers take precedence:
-
-```mermaid
-flowchart LR
-    A[Emacs settings as fallback] --> B[Top-level directives]
-    B --> C[Defaults properties]
-    C --> D[Panel properties]
-```
-
-`danbooru--merge-properties` walks the layers and repeatedly uses `plist-put`. Explicit `nil` values survive the merge; `plist-member` preserves their meaning when resolving steps and CFG. Legacy steps and CFG use `or`, so explicit `nil` there falls back to the Emacs setting.
-
-Tags and negative prompts are combined across their relevant layers rather than replaced like generation options. Comic `:vary` belongs inside a panel, and variants only multiply that panel's jobs.
-
-Selecting one panel happens **after** the full story has been compiled. An error in another panel can therefore prevent the selected panel from generating. Unresolved placeholders in comic prompts and negative prompts are errors; legacy expansion does not perform that final unresolved-marker check.
+Top-level generation options apply to every variation job, with Emacs settings as fallback. `:steps nil` and `:cfg nil` fall back to the corresponding Emacs setting. For different settings, use separate working prompt files that include the same definitions.
 
 ## 9. The queue adds execution details
 
 `danbooru-generate` is a short bridge between the compiler and runner:
 
 ```elisp
-(danbooru--enqueue-jobs (danbooru--expand text panel) text seed)
+(danbooru--enqueue-jobs (danbooru--expand text) text seed)
 ```
 
 `danbooru--enqueue-jobs` adds fields such as:
 
 | Field | Meaning |
 | --- | --- |
-| `:prompt`, `:params`, `:label`, `:panel` | Compiled job data. |
-| `:source` | Original prompt text, needed for regeneration and metadata. |
+| `:prompt`, `:params`, `:label` | Compiled job data. |
+| `:source` | Self-contained prompt source, needed for regeneration and metadata. |
 | `:seed` | Concrete nonnegative seed submitted to the backend. |
 | `:server` | Backend choice captured when queued. |
-| `:out` | Timestamped PNG path, with an index and label for batches/panels. |
+| `:out` | Timestamped PNG path, with an index and label for batches. |
 
-Seed choice uses the command's override first, then the job's seed, then `danbooru-seed`. Negative requested seeds are replaced with random integers. A hash table stores one random seed per panel identity during this enqueue operation. Variants of a panel reuse it; legacy variants all share the `nil` identity and therefore one seed. Different panels draw separately, though random draws can coincidentally match.
+Seed choice uses the command's override first, then the job's seed, then `danbooru-seed`. A negative requested seed causes one random integer to be chosen for the whole generation call. Every variant in that call reuses it.
 
 Preview shows the requested seed or the setting fallback. The actual random integer is chosen only when jobs are queued.
 
@@ -496,7 +454,7 @@ sequenceDiagram
 
 ### Why `lexical-binding: t` matters
 
-The file's first line enables lexical binding. The sentinel's `lambda` can retain local values such as `out`, `source`, `panel`, `params`, and `server` after `danbooru--start-next` returns. Such a function is called a **closure**.
+The file's first line enables lexical binding. The sentinel's `lambda` can retain local values such as `out`, `source`, `params`, and `server` after `danbooru--start-next` returns. Such a function is called a **closure**.
 
 This is a reduced illustration of the source's callback structure:
 
@@ -542,9 +500,9 @@ anima-example.png
 anima-example.png.json
 ```
 
-The JSON contains a format version, original source, optional panel name, resolved prompt, actual seed, requested parameters, and backend address or script path. These are submitted inputs; they do not resolve defaults inside the image backend.
+The JSON contains a format version, self-contained source, resolved prompt, actual seed, requested parameters, and backend address or script path. These are submitted inputs; they do not resolve defaults inside the image backend.
 
-`danbooru-show` also stores source and panel in buffer-local variables. `danbooru-regenerate` uses that buffer's source when available, otherwise `danbooru-last-source`, and requests a fresh seed. In a generated comic image buffer it selects that panel and its variants.
+`danbooru-show` also stores source in a buffer-local variable. `danbooru-regenerate` uses that buffer's source when available, otherwise `danbooru-last-source`, and requests a fresh seed. The saved source preserves the variation axes and any selected subset of alternatives.
 
 The code does not read a sidecar back automatically when an old image is opened in a fresh session. The saved JSON and the current buffer's in-memory metadata are separate mechanisms.
 
@@ -560,12 +518,9 @@ The code does not read a sidecar back automatically when an old image is opened 
 
 | Key | Action |
 | --- | --- |
-| `C-c C-p` | Preview all compiled jobs and copy prompts to the kill ring. |
-| `C-c C-c` | Save and generate the whole prompt buffer. |
-| `C-c C-r` | Generate the whole buffer with fresh seeds. |
-| `C-c C-v` | Preview the panel containing point. |
-| `C-c C-g` | Generate that panel and its variants. |
-| `C-c C-n` | Reroll that panel and its variants. |
+| `C-c C-p` | Preview the prompt or selected variation alternatives and copy prompts. |
+| `C-c C-c` | Save and generate the prompt or selected variation alternatives. |
+| `C-c C-r` | Generate the same selection with a fresh seed. |
 | `C-c C-k` | Cancel the running request and pending jobs. |
 | `C-c C-s` | Toggle the server/script setting. |
 | `M-TAB` | Complete a tag or named reference. |
@@ -582,7 +537,7 @@ The `auto-mode-alist` entry activates this mode for `.danbooru` files.
 
 `danbooru--completion-at-point` returns the current token's start position, end position, and completion candidates. `syntax-ppss` describes the surrounding syntax; the provider avoids completing inside strings or comments.
 
-Reference completion scans for character, scene, and outfit names instead of compiling the whole buffer. Imenu similarly scans named top-level definitions, ignoring comments, strings, and nested forms. This lets navigation work while a definition is unfinished.
+Completion combines the tag vocabulary with local and imported `:def` names, reading complete forms while tolerating an unfinished form at point. Imenu scans top-level `:def` names and ignores comments, strings, and nested forms. This lets navigation work while a definition is unfinished.
 
 `save-excursion` preserves point while code scans the buffer. `setq-local` and the local argument to `add-hook` install behavior just for the prompt buffer.
 
@@ -615,19 +570,16 @@ Load `danbooru.el` with `M-x load-file`, then evaluate these expressions in `*sc
 ;; => ("solo, sitting" "solo, standing")
 ```
 
-### See a comic's resolved prompt
+### Expand reusable definitions
 
 ```elisp
 (plist-get
- (car
-  (danbooru--expand
-   "(:defaults :tags (manga) :seed 42)
-(:character aya :description \"A woman\" :tags (long_hair))
-(:outfit casual :tags (sweater))
-(:scene cafe :tags (indoors) :cast ((aya :outfit casual)))
-(:panel hello :scene cafe :actors ((aya :pose (smiling))))"))
+ (car (danbooru--expand
+       "(:def appearance (long_hair hairclip))
+(:def clothing (sweater))
+(1girl solo appearance clothing smile)"))
  :prompt)
-;; => "manga, indoors. 1 person. A woman: long hair, sweater, smiling."
+;; => "1girl, solo, long hair, hairclip, sweater, smile"
 ```
 
 These examples only read and transform data. To inspect your own prompt file, open it in `danbooru-prompt-mode` and use `C-c C-p`.
@@ -639,8 +591,8 @@ These examples only read and transform data. To inspect your own prompt file, op
 | 1 | `danbooru--tag-name`, `danbooru--join` | Small functions, string processing, return values, mutation. |
 | 2 | `danbooru--flatten` | Type tests, recursion, optional arguments, substitutions. |
 | 3 | `danbooru--read-forms`, `danbooru--parse` | Buffers, error handling, plists, dispatch. |
-| 4 | `danbooru--expand-legacy` | Mapping and combinations. |
-| 5 | `danbooru--story`, `danbooru--actor-prompt`, `danbooru--expand-story` | Validation, references, defaults, a small compiler. |
+| 4 | `danbooru--expand-prompt` | Mapping and combinations. |
+| 5 | `danbooru--library-forms`, `danbooru--resolve-block-tree`, `danbooru--include-forms` | Definitions, recursion, cycle detection, imported data. |
 | 6 | `danbooru-generate`, `danbooru--enqueue-jobs` | Separating computation from execution and tracking state. |
 | 7 | Backend functions and `danbooru--start-next` | Processes, JSON, callbacks, lexical closures. |
 | 8 | Display and prompt-mode sections | Interactive commands, keymaps, buffer-local state, completion. |
@@ -659,7 +611,7 @@ Use `C-h f` for a function's documentation and `C-h v` for a variable's document
 
 `ert-deftest` defines a test. `should` checks a true condition; `should-error` checks that an expression signals an error. `equal` compares structured values such as lists and strings.
 
-The actual tests cover parsing, variations, actor/outfit merging, parameter precedence, errors, completion, navigation, seeds, asynchronous queue behavior, and metadata. Queue tests temporarily replace backend functions using `cl-letf`, so they can check behavior without a real image server. `unwind-protect` ensures cleanup runs even if the test fails.
+The actual tests cover parsing, definitions, imports, variations, generation settings, errors, completion, navigation, seeds, asynchronous queue behavior, and metadata. Queue tests temporarily replace backend functions using `cl-letf`, so they can check behavior without a real image server. `unwind-protect` ensures cleanup runs even if the test fails.
 
 Run the suite from the directory containing `danbooru.el`:
 
@@ -667,4 +619,4 @@ Run the suite from the directory containing `danbooru.el`:
 emacs --batch -Q --load tests/danbooru-test.el -f ert-run-tests-batch-and-exit
 ```
 
-Study `danbooru-test-legacy-lisp-and-json` first, then `danbooru-test-actor-binding-and-outfit-override`, and finally `danbooru-test-async-server-queue-and-sidecars` to follow the same progression from data transformation to asynchronous execution.
+Study `danbooru-test-lisp-prompts` first, then `danbooru-test-defs-expand-symbols-and-preserve-literals`, and finally `danbooru-test-async-server-queue-and-sidecars` to follow the same progression from data transformation to asynchronous execution.
