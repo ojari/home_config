@@ -16,12 +16,23 @@ ln -s ~/home_config/foot/foot.ini ~/.config/foot/foot.ini
 
 ln -s ~/home_config/kitty ~/.config/kitty
 
+mkdir ~/.config/rofi
+ln -s ~/home_config/rofi/config.rasi ~/.config/rofi/config.rasi
+
 mkdir ~/.config/fish
 ln -s ~/home_config/fish/config.fish ~/.config/fish/config.fish
 mkdir ~/.config/fish/functions
 ln -s ~/home_config/fish/functions/fish_prompt.fish ~/.config/fish/functions/fish_prompt.fish
 
 ln -s ~/home_config/xinitrc ~/.xinitrc
+
+# Agent skills, shared by Claude Code and Codex
+mkdir -p ~/.claude/skills ~/.codex/skills
+for d in ~/home_config/skills/*/; do
+  name=$(basename "$d")
+  ln -s ~/home_config/skills/"$name" ~/.claude/skills/"$name"
+  ln -s ~/home_config/skills/"$name" ~/.codex/skills/"$name"
+done
 
 # sudoers.d drop-ins must be root-owned and mode 0440, so they're installed
 # (not symlinked) and validated with visudo before being put in place.

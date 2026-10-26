@@ -10,21 +10,31 @@ set $down j
 set $up k
 set $right l
 # Your preferred terminal emulator
-set $term foot
+set $term kitty
 # Your preferred application launcher
 #set $menu wmenu-run
 set $menu rofi -show drun
 
-# Workspace names (number prefix keeps `workspace number $wsN` sorting/matching working)
-set $ws1 "1:term"
-set $ws2 "2:edit"
-set $ws3 "3:web"
-set $ws4 "4:notes"
-set $ws5 "5:misc"
-set $ws6 "6:"
-set $ws7 "7:"
-set $ws8 "8:"
-set $ws9 "9"
+# Monitors by make/model/serial: connector names (DP-6, DP-7) change between docks/ports
+set $main "Lenovo Group Limited P27Q-40 V90FMD97"
+set $side "Lenovo Group Limited P27Q-40 V90FMD99"
+set $lap eDP-1
+
+# Workspace names (number prefix keeps `workspace number $wsN` sorting/matching working).
+# No quotes: they would end up in the workspace name via `workspace number`.
+set $ws1 1:term
+set $ws2 2:edit
+set $ws3 3:web
+set $ws4 4:notes
+set $ws5 5:misc
+
+# Each workspace lives on its preferred output, falling back to the next one listed.
+# Sway moves them back automatically when the preferred monitor reconnects.
+workspace $ws1 output $main $lap
+workspace $ws2 output $main $lap
+workspace $ws3 output $main $lap
+workspace $ws4 output $side $main $lap
+workspace $ws5 output $side $main $lap
 
 include /etc/sway/config-vars.d/*
 
@@ -45,6 +55,7 @@ exec_always {
 #
 output X11-1 resolution 1920x1200
 #output X11-1 resolution 2560x1440
+output $side transform 90
 
 # Example configuration:
 #
@@ -88,7 +99,7 @@ input * xkb_file /home/jari/home_config/xkb.dump
     # Start a terminal
     bindsym $mod+Return exec $term
 
-    bindsym $mod+e exec emacs --init-directory=/home/jari/home_config/lisp
+    # bindsym $mod+e exec emacs --init-directory=/home/jari/home_config/lisp
     bindsym $mod+p exec firefox --url https://outlook.office.com https://teams.microsoft.com https://copilot.microsoft.com
 
     # Kill focused window
@@ -136,6 +147,9 @@ input * xkb_file /home/jari/home_config/xkb.dump
 
     bindsym $mod+Shift+Left move workspace to output left
     bindsym $mod+Shift+Right move workspace to output right
+    # Switch between monitors
+    bindsym $mod+Ctrl+Left focus output left
+    bindsym $mod+Ctrl+Right focus output right
 #
 # Workspaces:
 #
@@ -145,20 +159,12 @@ input * xkb_file /home/jari/home_config/xkb.dump
     bindsym $mod+3 workspace number $ws3
     bindsym $mod+4 workspace number $ws4
     bindsym $mod+5 workspace number $ws5
-    bindsym $mod+6 workspace number $ws6
-    bindsym $mod+7 workspace number $ws7
-    bindsym $mod+8 workspace number $ws8
-    bindsym $mod+9 workspace number $ws9
     # Move focused container to workspace
     bindsym $mod+Shift+1 move container to workspace number $ws1
     bindsym $mod+Shift+2 move container to workspace number $ws2
     bindsym $mod+Shift+3 move container to workspace number $ws3
     bindsym $mod+Shift+4 move container to workspace number $ws4
     bindsym $mod+Shift+5 move container to workspace number $ws5
-    bindsym $mod+Shift+6 move container to workspace number $ws6
-    bindsym $mod+Shift+7 move container to workspace number $ws7
-    bindsym $mod+Shift+8 move container to workspace number $ws8
-    bindsym $mod+Shift+9 move container to workspace number $ws9
     # Note: workspaces can have any name you want, not just numbers.
     # We just use 1-10 as the default.
 #
@@ -174,6 +180,8 @@ input * xkb_file /home/jari/home_config/xkb.dump
     # Switch the current container between different layout styles
     bindsym $mod+s layout stacking
     bindsym $mod+w layout tabbed
+    # Cycle: splith -> splitv -> stacking -> tabbed
+    bindsym $mod+t layout toggle all
     #bindsym $mod+e layout toggle split
 
     # Make the current focus fullscreen
@@ -187,6 +195,16 @@ input * xkb_file /home/jari/home_config/xkb.dump
 
     # Move focus to the parent container
     bindsym $mod+a focus parent
+
+    # Alt+Tab window switcher: hold Alt, tap Tab / Shift+Tab, release Alt to switch
+    bindsym Mod1+Tab exec rofi -show window \
+        -kb-accept-entry '!Alt-Tab,!Alt+Alt_L,Return' \
+        -kb-row-down 'Alt+Tab,Alt+Down,Down' \
+        -kb-row-up 'Alt+ISO_Left_Tab,Alt+Up,Up' \
+        -kb-cancel 'Escape,Alt+Escape' \
+        -selected-row 1
+
+	bindsym $mod+e exec rofi -show drun
 #
 # Scratchpad:
 #
@@ -267,8 +285,9 @@ default_border pixel 2
 default_floating_border normal
 titlebar_padding 1
 
-assign [app_id="foot"] $ws1
+assign [app_id="kitty"] $ws1
 assign [app_id="code"] $ws2
+assign [app_id="com.microsoft.VSCode"] $ws2
 assign [app_id="emacs"] $ws2
 workspace $ws2, layout tabbed
 assign [app_id="org.mozilla.firefox"] $ws3
@@ -281,7 +300,6 @@ assign [app_id="chrome-pkooggnaalmfkidjmlhoelhdllpphaga-Default"] $ws5
 assign [app_id="org.gnome.Nautilus"] $ws5
 workspace $ws5, layout tabbed
 
-output DP-6 disable
 
 
 exec waybar

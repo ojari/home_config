@@ -25,7 +25,7 @@
         "cpu",
         "memory",
         // "temperature",
-        "backlight",
+        // "backlight",
         "keyboard-state",
         "battery",
         // "battery#bat2",
@@ -36,7 +36,7 @@
     // Modules configuration
     "sway/workspaces": {
         "disable-scroll": true,
-        "all-outputs": true,
+        "all-outputs": false,
         "warp-on-scroll": false,
         "format": " {icon} ",
         "format-icons": {
@@ -223,6 +223,7 @@
 		"menu-actions": {
 			"shutdown": "shutdown",
 			"reboot": "reboot",
+			"logout": "swaymsg exit",
 			"suspend": "systemctl suspend",
 			"hibernate": "systemctl hibernate"
 		}
