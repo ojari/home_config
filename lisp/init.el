@@ -267,7 +267,8 @@
     (interactive)
     (let ((file (dired-get-file-for-visit)))
       (if (and (not (file-directory-p file))
-               (equal (downcase (or (file-name-extension file) "")) "mp4"))
+			   (member (downcase (or (file-name-extension file) ""))
+					   '("mp4" "mkv")))
           (set-process-query-on-exit-flag
            (start-process "dired-mpv" nil "mpv" "--" file) nil)
         (dired-find-file))))

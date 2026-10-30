@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Documentation"
+  short_description: "Write concise software design docs with diagrams"
+  default_prompt: "Use $software-documentation to write a concise software design document with useful diagrams and links to existing Obsidian notes."

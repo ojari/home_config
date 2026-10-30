@@ -63,6 +63,12 @@ if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
 fi
 
+if [[ $TERM == "dumb" ]]; then
+    PS1='$ '
+    unset PROMPT_COMMAND
+    return
+fi
+
 # Simple powerline
 #
 # Colors
