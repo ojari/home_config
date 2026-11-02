@@ -3,12 +3,12 @@
 ;;; ── Package system ──────────────────────────────────────────────────────────
 
 (require 'package)
-(setq package-check-signature nil)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(add-to-list 'package-archives '("gnu"   . "https://elpa.gnu.org/packages/") t)
 (package-initialize)
 
-(add-to-list 'load-path (getenv "HOME"))
+;; Customize writes here instead of appending to init.el.
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file 'noerror 'nomessage)
 
 ;;; ── Core ────────────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@
   (make-backup-files nil)
   (use-short-answers t)
   (visible-bell 1)
-  (system-time-locale "fi")
+  (system-time-locale "fi_FI.utf8")
   (frame-title-format "emacs - %b")
   (tab-width 4)
   (tab-stop-list (number-sequence 4 200 4))
@@ -39,16 +39,18 @@
   (require 'server)
   (unless (server-running-p) (server-start))
   (show-paren-mode t)
-  (menu-bar-mode -1)
-  (tool-bar-mode -1)
   (set-fringe-mode 10)
   (set-face-attribute 'default nil :font "Fira Code" :height 120)
   (if window-system
       (progn (tooltip-mode -1))
     (xterm-mouse-mode))
   :init
-  (with-current-buffer (get-buffer-create "*scratch*")
-    (insert (format ";;
+  ;; Runs after init so `emacs-init-time' reports the full startup.
+  (add-hook 'emacs-startup-hook
+            (lambda ()
+              (with-current-buffer (get-buffer-create "*scratch*")
+                (goto-char (point-min))
+                (insert (format ";;
 ;; ███████╗███╗   ███╗ █████╗  ██████╗███████╗
 ;; ██╔════╝████╗ ████║██╔══██╗██╔════╝██╔════╝
 ;; █████╗  ██╔████╔██║███████║██║     ███████╗
@@ -60,30 +62,34 @@
 ;;   Packages     : %s
 ;;
 "
-                    (emacs-init-time)
-                    (number-to-string (length package-activated-list)))))
-  (setq ibuffer-saved-filter-groups
-        '(("default"
-           ("C++"      (or (mode . c-mode) (mode . c++-mode)))
-           ("org"      (or (mode . org-mode)
-                           (name . "^\\*Org Src")
-                           (name . "^\\*Org Agenda\\*$")))
-           ("emacs"    (or (name . "^\\*scratch\\*$")
-                           (name . "^\\*Messages\\*$")
-                           (name . "^\\*Warnings\\*$")
-                           (name . "^\\*Shell Command Output\\*$")
-                           (name . "^\\*Async-native-compile-log\\*$")))
-           ("ediff"    (name . "^\\*[Ee]diff.*"))
-           ("vc"       (name . "^\\*vc-.*"))
-           ("dired"    (mode . dired-mode))
-           ("terminal" (or (mode . term-mode)
-                           (mode . shell-mode)
-                           (mode . eshell-mode)))
-           ("help"     (or (name . "^\\*Help\\*$")
-                           (name . "^\\*info\\*$"))))))
-  (add-hook 'ibuffer-mode-hook
-            (lambda () (ibuffer-switch-to-saved-filter-groups "default")))
-  (setq ibuffer-show-empty-filter-groups nil))
+                                (emacs-init-time)
+                                (length package-activated-list)))))))
+
+(use-package ibuffer
+  :ensure nil
+  :defer t
+  :hook (ibuffer-mode . (lambda () (ibuffer-switch-to-saved-filter-groups "default")))
+  :custom
+  (ibuffer-show-empty-filter-groups nil)
+  (ibuffer-saved-filter-groups
+   '(("default"
+      ("C++"      (or (mode . c-mode) (mode . c++-mode)))
+      ("org"      (or (mode . org-mode)
+                      (name . "^\\*Org Src")
+                      (name . "^\\*Org Agenda\\*$")))
+      ("emacs"    (or (name . "^\\*scratch\\*$")
+                      (name . "^\\*Messages\\*$")
+                      (name . "^\\*Warnings\\*$")
+                      (name . "^\\*Shell Command Output\\*$")
+                      (name . "^\\*Async-native-compile-log\\*$")))
+      ("ediff"    (name . "^\\*[Ee]diff.*"))
+      ("vc"       (name . "^\\*vc-.*"))
+      ("dired"    (mode . dired-mode))
+      ("terminal" (or (mode . term-mode)
+                      (mode . shell-mode)
+                      (mode . eshell-mode)))
+      ("help"     (or (name . "^\\*Help\\*$")
+                      (name . "^\\*info\\*$")))))))
 
 (define-prefix-command 'my-jmenu)
 
@@ -137,10 +143,6 @@
   :config
   (savehist-mode 1))
 
-(use-package consult
-  :ensure t
-  :defer t)
-
 ;;; ── Org ─────────────────────────────────────────────────────────────────────
 
 (use-package org
@@ -153,11 +155,13 @@
   (org-startup-with-latex-preview nil)
   (org-cycle-hide-drawer-startup t)
   (org-export-coding-system 'utf-8)
-  (org-plantuml-jar-path (expand-file-name "/usr/plantuml.jar"))
+  ;; Fedora `plantuml' package location (dnf install plantuml).
+  (org-plantuml-jar-path "/usr/share/java/plantuml.jar")
   (org-mobile-directory "/tmp/org-mobile")
   (org-time-stamp-custom-formats '("<%m/%d/%y %a>" . "<%d/%m %a %H:%M>"))
   (org-link-frame-setup '((file . find-file)))
   (org-agenda-start-with-clockreport-mode t)
+  (org-export-with-broken-links 'mark)
   :config
   (org-babel-do-load-languages
    'org-babel-load-languages
@@ -203,12 +207,12 @@
   :ensure t
   :defer t
   :custom
-  (org-roam-completion-system 'default)
   (org-roam-completion-everywhere t)
   (org-roam-directory "~/org-roam")
   (org-roam-buffer-window-parameters '((no-delete-other-windows . t)))
   :config
-  (define-key org-mode-map (kbd "C-j") 'my-jmenu))
+  ;; Keep org-roam.db in sync with file saves/renames/deletes.
+  (org-roam-db-autosync-mode 1))
 
 ;;; ── Programming ─────────────────────────────────────────────────────────────
 
@@ -233,7 +237,24 @@
 
 (use-package magit
   :ensure t
-  :defer t)
+  :defer t
+  :custom
+  ;; M-x magit-list-repositories: add the checked-out branch column.
+  (magit-repolist-columns
+   '(("Name"    25 magit-repolist-column-ident ())
+     ("Branch"  25 magit-repolist-column-branch ())
+     ("Version" 25 magit-repolist-column-version
+      ((:sort magit-repolist-version<)))
+     ("B<U"      3 magit-repolist-column-unpulled-from-upstream
+      ((:right-align t) (:sort <)))
+     ("B>U"      3 magit-repolist-column-unpushed-to-upstream
+      ((:right-align t) (:sort <)))
+     ("Path"    99 magit-repolist-column-path ())))
+  :config
+  ;; Ignore whitespace in diffs by default (the old `magit-diff-arguments'
+  ;; custom variable is gone; transient values per mode replace it).
+  (put 'magit-diff-mode 'magit-diff-default-arguments
+       '("--stat" "--no-ext-diff" "-w")))
 
 (use-package rg
   :ensure t
@@ -242,7 +263,7 @@
   (rg-root-directory "~/"))
 
 (use-package which-key
-  :ensure t
+  :ensure nil
   :config
   (which-key-mode))
 
@@ -298,7 +319,7 @@
                       (lambda ()
                         (setq ediff-after-quit-hook-internal nil)
                         (set-window-configuration wnd))))
-        (error "no more than 2 files should be marked")))))
+        (user-error "Mark exactly 2 files to ediff")))))
 
 (use-package vterm
   :ensure t
@@ -331,15 +352,6 @@ Line breaks inside the text go as Shift+Return; one Return goes at the end."
 
 (global-set-key (kbd "C-c v s") #'my/send-to-vterm)
 
-(use-package aidermacs
-  :bind (("C-c a" . aidermacs-transient-menu))
-  :custom
-  (aidermacs-backend 'vterm)
-  (aidermacs-default-model "Qwen3.5-9B-IQ4_XS")
-  (aidermacs-extra-args
-   '("--openai-api-base" "http://127.0.0.1:8080/v1"
-     "--openai-api-key" "local")))
-
 ;;; ── Extras ──────────────────────────────────────────────────────────────────
 
 ;; ISO week numbers in calendar
@@ -363,53 +375,22 @@ Line breaks inside the text go as Shift+Return; one Return goes at the end."
         (other-window 1))
     (message "No region active!")))
 
-(defun magit-ignore-whitespace ()
-  (interactive)
-  (add-to-list 'magit-diff-options "-w")
-  (magit-refresh))
-
 ;;; ── Load external config ────────────────────────────────────────────────────
 
 (load-library "~/home_config/lisp/project_config.el")
-(load-library "~/home_config/lisp/danbooru.el")
 (load-library "~/home_config/lisp/keymap.el")
 
-;;; ── Custom (managed by Emacs — do not edit manually) ────────────────────────
+;; danbooru.el loads on first use instead of at every startup.
+(dolist (cmd '(danbooru danbooru-prompt-mode danbooru-edit-prompt
+               danbooru-regenerate danbooru-cancel danbooru-start-server
+               danbooru-stop-server danbooru-toggle-server))
+  (autoload cmd "~/home_config/lisp/danbooru" nil t))
+(add-to-list 'auto-mode-alist '("\\.danbooru\\'" . danbooru-prompt-mode))
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("f654d73d7a0761cc4f7d99fffe4b16fce1b2d95844f37bc786e455cec744ac75"
-	 "e8bd9bbf6506afca133125b0be48b1f033b1c8647c628652ab7a2fe065c10ef0"
-	 "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
-	 "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
-	 "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
-	 default))
- '(dashboard-bookmarks-item-format "%s - %s")
- '(dashboard-bookmarks-show-base nil)
- '(grep-find-ignored-directories '(".src" ".svn" ".git"))
- '(grep-find-ignored-files
-   '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
-	 "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
- '(grep-highlight-matches t)
- '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
- '(magit-fetch-arguments nil)
- '(org-export-with-broken-links 'mark)
- '(package-selected-packages
-   '(aidermacs consult eat inheritenv magit markdown-mode org-roam
-			   projectile rg treemacs vterm))
- '(safe-local-variable-values '((gud-gdb-command-name . "gdb -i=mi build_debug/pctests")))
- '(speedbar-supported-extension-expressions
-   '(".cmake" "CMakeLists\\.txt" ".md" "\\.md$"
-	 ".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".el" ".emacs" ".java"
-	 ".js" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py" ".lua" ".s?html"
-	 ".ma?k" "[Mm]akefile\\(\\.in\\)?")))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;; danbooru-builder.el (tag catalog prompt builder) also loads on first use.
+(dolist (cmd '(danbooru-builder danbooru-builder-open danbooru-builder-open-image
+               danbooru-builder-file-mode))
+  (autoload cmd "~/home_config/lisp/danbooru-builder" nil t))
+(add-to-list 'auto-mode-alist '("\\.dbb\\'" . danbooru-builder-file-mode))
+
+;; Customize settings live in custom.el (see `custom-file' above).

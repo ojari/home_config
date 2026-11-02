@@ -578,24 +578,37 @@ generation is running, the new images are queued after it."
          (batch (cdr jobs))
          (index 0))
     (setq danbooru-last-source text)
-    (unless (process-live-p danbooru--process)
-      (setq danbooru--batch nil
-            danbooru--batch-size 0)
-      (with-current-buffer (get-buffer-create "*danbooru-log*")
-        (erase-buffer)))
-    (dolist (job jobs)
-      (let ((label (plist-get job :label)))
-        (setq danbooru--queue
-              (append danbooru--queue
-                      (list (list :prompt (plist-get job :prompt) :params (plist-get job :params)
-                                  :seed actual :label label :source text
-                                  :server danbooru-server
-                                  :out (danbooru--output-file
-                                        stamp (and batch (cl-incf index)) label)))))))
-    (cl-incf danbooru--batch-size (length jobs))
-    (if (process-live-p danbooru--process)
-        (message "danbooru: queued %d image(s)" (length jobs))
-      (danbooru--start-next))))
+    (danbooru-enqueue
+     (mapcar (lambda (job)
+               (let ((label (plist-get job :label)))
+                 (list :prompt (plist-get job :prompt) :params (plist-get job :params)
+                       :seed actual :label label :source text
+                       :server danbooru-server
+                       :out (danbooru--output-file
+                             stamp (and batch (cl-incf index)) label))))
+             jobs))))
+
+(defun danbooru-enqueue (jobs)
+  "Queue JOBS and start them unless a generation is running.
+Each job is a plist of :prompt, :seed, :out (the image file) and
+:params, a plist of :model, :width, :height, :steps, :cfg, :neg,
+:sampler and :scheduler (nil means the default; other keys are only
+recorded in the metadata).  Optional: :label, :source (prompt file text,
+for `danbooru-regenerate'), :meta (a plist added to the image's JSON
+metadata), and the backend: :server (an sd-server URL),
+:command (an argument list run as is, in the directory of its program),
+or neither for `danbooru-script'.  With :command, :preview names an image
+file the program rewrites while sampling; it is shown as it changes."
+  (unless (process-live-p danbooru--process)
+    (setq danbooru--batch nil
+          danbooru--batch-size 0)
+    (with-current-buffer (get-buffer-create "*danbooru-log*")
+      (erase-buffer)))
+  (setq danbooru--queue (append danbooru--queue jobs))
+  (cl-incf danbooru--batch-size (length jobs))
+  (if (process-live-p danbooru--process)
+      (message "danbooru: queued %d image(s)" (length jobs))
+    (danbooru--start-next)))
 
 (defun danbooru--script-process (prompt params seed out log)
   "Start `danbooru-script' for PROMPT, PARAMS and SEED writing OUT.
@@ -604,7 +617,8 @@ Output goes to buffer LOG."
          (append (list (format "OUT=%s" out)
                        (format "SEED=%d" seed))
                  (cl-loop for (key var) on '(:model "MODEL" :width "W" :height "H"
-						    :steps "STEPS" :cfg "CFG" :neg "NEG")
+						    :steps "STEPS" :cfg "CFG" :neg "NEG"
+                                                    :sampler "SAMPLER" :scheduler "SCHEDULER")
                           by #'cddr
                           for v = (plist-get params key)
                           when v collect (format "%s=%s" var v))
@@ -630,7 +644,8 @@ curl runs asynchronously; the response is decoded by
                        :steps (plist-get params :steps)
                        :cfg_scale (plist-get params :cfg)
                        :seed seed
-                       :sampler_name "euler"))))
+                       :sampler_name (or (plist-get params :sampler) "euler")
+                       :scheduler (plist-get params :scheduler)))))
          (proc (make-process
                 :name "danbooru"
                 :buffer resp
@@ -645,6 +660,87 @@ curl runs asynchronously; the response is decoded by
     (process-put proc 'danbooru-out out)
     (process-send-string proc body)
     (process-send-eof proc)
+    proc))
+
+(defconst danbooru--ansi-re "\e\\[[0-9;?]*[A-Za-z]"
+  "Terminal escape sequences in program output.")
+
+(defcustom danbooru-preview-width 512
+  "Width in pixels the live sampling preview is scaled to.
+Fast previews such as sd-cli's proj are tiny, e.g. 64x64."
+  :type 'natnum)
+
+(defconst danbooru--preview-buffer "*danbooru-preview*"
+  "Buffer showing the image being sampled.")
+
+(defun danbooru--show-preview (file)
+  "Show the preview image FILE in `danbooru--preview-buffer'."
+  (when (display-images-p)
+    (let ((data (with-temp-buffer
+                  (set-buffer-multibyte nil)
+                  (insert-file-contents-literally file)
+                  (buffer-string)))
+          (buf (get-buffer-create danbooru--preview-buffer)))
+      (with-current-buffer buf
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          ;; image data, not the file name: the file keeps changing
+          (insert-image (create-image data nil t :width danbooru-preview-width))
+          (setq buffer-read-only t)))
+      (unless (get-buffer-window buf t)
+        (display-buffer buf)))))
+
+(defun danbooru--watch-preview (proc file)
+  "Show FILE whenever it changes while PROC runs."
+  (let ((last nil))
+    (process-put
+     proc 'danbooru-preview-timer
+     (run-with-timer
+      0.5 0.5
+      (lambda ()
+        (let ((mtime (and (file-exists-p file)
+                          (file-attribute-modification-time (file-attributes file)))))
+          (when (and mtime (not (equal mtime last)))
+            (setq last mtime)
+            (condition-case nil
+                (danbooru--show-preview file)
+              (error nil)))))))))   ; a half-written file shows next time
+
+(defun danbooru--stop-preview (proc &optional close)
+  "Stop watching the preview of PROC; CLOSE also closes the preview window."
+  (when-let* ((timer (process-get proc 'danbooru-preview-timer)))
+    (cancel-timer timer)
+    (process-put proc 'danbooru-preview-timer nil))
+  (when-let* ((close)
+              (buf (get-buffer danbooru--preview-buffer)))
+    (quit-windows-on buf t)))
+
+(defun danbooru--command-process (command log status &optional preview)
+  "Run COMMAND, an argument list, in the directory of its program.
+Output goes to buffer LOG; sampling progress is shown after STATUS.
+PREVIEW is an image file COMMAND rewrites while sampling, shown as it changes."
+  (when preview
+    (ignore-errors (delete-file preview)))
+  (let* ((default-directory (file-name-directory (car command)))
+         (proc (make-process
+                :name "danbooru"
+                :buffer log
+                :command command
+                :coding 'utf-8
+                :filter
+                (lambda (proc string)
+                  (let ((text (replace-regexp-in-string
+                               "\r" "\n" (replace-regexp-in-string danbooru--ansi-re "" string))))
+                    (when (buffer-live-p (process-buffer proc))
+                      (with-current-buffer (process-buffer proc)
+                        (save-excursion
+                          (goto-char (point-max))
+                          (insert text))))
+                    (when (string-match ".*|[ \t]*\\([0-9]+\\)/\\([0-9]+\\)" text)
+                      (message "%s step %s/%s" status
+                               (match-string 1 text) (match-string 2 text))))))))
+    (when preview
+      (danbooru--watch-preview proc preview))
     proc))
 
 (defun danbooru--obj (plist)
@@ -679,33 +775,41 @@ Return non-nil on success, else copy the response to buffer LOG."
   (if (null danbooru--queue)
       (when (cdr danbooru--batch)
         (message "danbooru: batch done, %d images" (length danbooru--batch))
-        (dired (cons (expand-file-name danbooru-output-dir) (reverse danbooru--batch))))
-    (cl-destructuring-bind (&key prompt params seed out label source server)
+        (dired (cons (file-name-directory (car danbooru--batch))
+                     (reverse danbooru--batch))))
+    (cl-destructuring-bind (&key prompt params seed out label source server command meta preview)
         (pop danbooru--queue)
-      (let ((log (get-buffer-create "*danbooru-log*"))
-            (n (- danbooru--batch-size (length danbooru--queue))))
+      (let* ((log (get-buffer-create "*danbooru-log*"))
+             (n (- danbooru--batch-size (length danbooru--queue)))
+             (status (format "danbooru: generating %d/%d %s..." n danbooru--batch-size
+                             (if label (format "\"%s\"" label) (file-name-nondirectory out)))))
         (with-current-buffer log
           (goto-char (point-max))
-          (insert (format "== %s seed %d%s%s\n%S\n%s\n\n"
+          (insert (format "== %s seed %d%s%s\n%S\n%s\n%s\n"
                           (file-name-nondirectory out) seed
                           (if label (format " [%s]" label) "")
                           (if server (format " via %s" server) "")
-                          params prompt)))
+                          params prompt
+                          (if command
+                              (concat "$ " (mapconcat #'shell-quote-argument command " ") "\n")
+                            ""))))
         (setq danbooru--process
-              (if server
-                  (danbooru--server-process prompt params seed out log server)
-                (danbooru--script-process prompt params seed out log)))
+              (cond (server (danbooru--server-process prompt params seed out log server))
+                    (command (danbooru--command-process command log status preview))
+                    (t (danbooru--script-process prompt params seed out log))))
         (set-process-sentinel
          danbooru--process
          (lambda (proc _event)
            (when (memq (process-status proc) '(exit signal))
+             (danbooru--stop-preview proc (zerop (process-exit-status proc)))
              (if (and (zerop (process-exit-status proc))
                       (or (not server) (danbooru--save-response proc log))
                       (file-exists-p out))
                  (progn (message "danbooru: done %s" out)
                         (cl-pushnew out danbooru--batch :test #'equal)
                         (condition-case err
-                            (danbooru--save-metadata out source prompt params seed server)
+                            (danbooru--save-metadata out source prompt params seed
+                                                     (or server (car command)) meta)
                           (error (with-current-buffer log
                                    (goto-char (point-max))
                                    (insert (format "metadata error: %s\n"
@@ -719,8 +823,7 @@ Return non-nil on success, else copy the response to buffer LOG."
                (setq danbooru--queue nil)
                (message "danbooru: failed (see *danbooru-log*)")
                (display-buffer log)))))
-        (message "danbooru: generating %d/%d %s..." n danbooru--batch-size
-                 (if label (format "\"%s\"" label) (file-name-nondirectory out)))))))
+        (message "%s" status)))))
 
 (defun danbooru-cancel ()
   "Stop the running generation and drop the queued ones.
@@ -774,15 +877,18 @@ With a prefix argument ask for the URL."
 
 (defvar-local danbooru-source nil "Prompt text that produced this image.")
 
-(defun danbooru--save-metadata (out source prompt params seed server)
-  "Save the inputs that produced OUT to a neighboring JSON file."
+(defun danbooru--save-metadata (out source prompt params seed backend &optional meta)
+  "Save the inputs that produced OUT to a neighboring JSON file.
+BACKEND is the server URL or program used, nil for `danbooru-script'.
+META is a plist of further entries."
   (let ((coding-system-for-write 'utf-8-unix))
     (with-temp-file (concat out ".json")
       (insert (json-serialize
-               (list :version 1 :source source
-                     :prompt prompt :seed seed
-                     :requested_parameters (danbooru--obj params)
-                     :backend (or server (expand-file-name danbooru-script)))))
+               (append (list :version 1 :source (or source :null)
+                             :prompt prompt :seed seed
+                             :requested_parameters (danbooru--obj params)
+                             :backend (or backend (expand-file-name danbooru-script)))
+                       meta)))
       (insert "\n"))))
 
 (defun danbooru-show (file &optional source)
@@ -809,6 +915,11 @@ With a prefix argument ask for the URL."
 (defun danbooru-regenerate ()
   "Run the last prompt (or this image's prompt) again with a random seed."
   (interactive)
+  (when (and (local-variable-p 'danbooru-source) (null danbooru-source))
+    (user-error "danbooru: this image has no prompt file source%s"
+                (if (fboundp 'danbooru-builder-open-image)
+                    "; M-x danbooru-builder-open-image loads its builder setup"
+                  "")))
   (let ((text (or danbooru-source danbooru-last-source)))
     (unless text (user-error "danbooru: no previous prompt"))
     (danbooru-generate text -1)))

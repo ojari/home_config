@@ -1,18 +1,11 @@
 (global-set-key [f10] 'server-edit)
-(global-set-key [f11] 'kill-this-buffer)
+(global-set-key [f11] 'kill-current-buffer)
 (global-set-key [f12] 'magit-status)
 
 (eval-after-load "ibuffer"
   '(progn
      (define-key ibuffer-mode-map (kbd "i") 'previous-line)
      (define-key ibuffer-mode-map (kbd "k") 'next-line)))
-
-(eval-after-load "elfeed"
-  '(progn
-     (define-key elfeed-search-mode-map (kbd "i") 'previous-line)
-     (define-key elfeed-search-mode-map (kbd "k") 'next-line)
-     (define-key elfeed-show-mode-map   (kbd "i") 'elfeed-show-next)
-     (define-key elfeed-show-mode-map   (kbd "k") 'elfeed-show-prev)))
 
 ;(define-key input-decode-map [?\C-i] [C-i])
 ;(define-key input-decode-map [?\C-m] [C-m])
@@ -49,11 +42,14 @@
 
 ;; (define-prefix-command 'my-jmenu)
 (global-set-key (kbd "C-j") 'my-jmenu)
-(define-key my-jmenu "a" 'copilot-chat-display)
-;;(define-key my-jmenu "a" 'avy-goto-char-2)
+;; Modes that bind C-j themselves would shadow the leader; take it back.
+;; (Not `bind-key*': that would also steal C-j = exit-minibuffer from fido.)
+(define-key lisp-interaction-mode-map (kbd "C-j") 'my-jmenu)
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-j") 'my-jmenu))
 ;;(define-key my-jmenu "b" 'consult-buffer)
-;;(define-key my-jmenu "c" 'avy-copy-line)
 (define-key my-jmenu "c" 'my/compile)
+(define-key my-jmenu (kbd "d b") 'danbooru-builder)
 ;;(define-key my-jmenu "d" 'arm-gdb)
 ;;(define-key my-jmenu "e" 'elfeed)
 ;;(define-key my-jmenu "f" 'ido-imenu-anywhere)
@@ -71,7 +67,7 @@
 ;;(define-key my-jmenu "o" 'org-roam-node-insert)
 (define-key my-jmenu "q" 'my/grep-in-filelist)
 ;;(define-key my-jmenu "p" 'eclim-project-build)
-(define-key my-jmenu "r" 'rg-search-at-point)
+(define-key my-jmenu "r" 'my/rg-search-at-point)
 (define-key my-jmenu "s" 'my/send-to-vterm)
 (define-key my-jmenu "t" 'eshell)
 
