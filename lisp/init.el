@@ -393,4 +393,45 @@ Line breaks inside the text go as Shift+Return; one Return goes at the end."
   (autoload cmd "~/home_config/lisp/danbooru-builder" nil t))
 (add-to-list 'auto-mode-alist '("\\.dbb\\'" . danbooru-builder-file-mode))
 
+;; Simple keyboard-driven gallery, loaded on first use.
+(autoload 'image-gallery "~/home_config/lisp/image-gallery" nil t)
+
 ;; Customize settings live in custom.el (see `custom-file' above).
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("f654d73d7a0761cc4f7d99fffe4b16fce1b2d95844f37bc786e455cec744ac75"
+	 "e8bd9bbf6506afca133125b0be48b1f033b1c8647c628652ab7a2fe065c10ef0"
+	 "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
+	 "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4"
+	 "afbb40954f67924d3153f27b6d3399df221b2050f2a72eb2cfa8d29ca783c5a8"
+	 default))
+ '(danbooru-builder-directory "~/work/danbooru/")
+ '(dashboard-bookmarks-item-format "%s - %s")
+ '(dashboard-bookmarks-show-base nil)
+ '(grep-find-ignored-directories '(".src" ".svn" ".git"))
+ '(grep-find-ignored-files
+   '(".#*" "*.o" "*~" "*.bin" "*.so" "*.a" "*.ln" "*.elc" "*.class"
+	 "*.lib" "*.lo" "*.la" "*.pg" "*.pyc" "*.pyo"))
+ '(grep-highlight-matches t)
+ '(magit-diff-arguments '("--stat" "--no-ext-diff" "-w"))
+ '(magit-fetch-arguments nil)
+ '(org-export-with-broken-links 'mark)
+ '(package-selected-packages
+   '(aidermacs consult eat inheritenv magit markdown-mode org-roam
+			   projectile rg treemacs vterm))
+ '(safe-local-variable-values '((gud-gdb-command-name . "gdb -i=mi build_debug/pctests")))
+ '(speedbar-supported-extension-expressions
+   '(".cmake" "CMakeLists\\.txt" ".md" "\\.md$"
+	 ".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".el" ".emacs" ".java"
+	 ".js" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py" ".lua" ".s?html"
+	 ".ma?k" "[Mm]akefile\\(\\.in\\)?")))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
