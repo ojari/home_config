@@ -15,6 +15,8 @@ tags:
 
 This note explains the implementation for someone learning **Emacs Lisp**. Read it alongside [the source](danbooru.el). For a guide focused on writing comic prompts, see [[danbooru-manga]].
 
+Checked against the local `danbooru.el` and [danbooru-groups.el](danbooru-groups.el) sources on 2026-10-25.
+
 For researched Anima prompting guidance and the `:caption` and `:artist`
 extensions, see [Writing Anima prompts](danbooru-anima.md).
 
@@ -268,19 +270,24 @@ The parser separates ordinary tag forms from recognized directives:
 
 ```mermaid
 flowchart LR
-    A[Read forms] --> B{First item is a directive keyword?}
+    A[Read forms] --> L[Import libraries and expand definitions]
+    L --> B{First item is a directive keyword?}
     B -->|Ordinary tag form| C[Collect tag trees]
     B -->|vary| D[Collect marker and alternatives]
     B -->|Generation option or neg| E[Collect settings or negatives]
+    B -->|artist| C
+    B -->|caption| F[Collect caption strings]
     C --> G[Parsed plist]
     D --> G
     E --> G
+    F --> G
 ```
 
 An unknown keyword directive produces an error. A simplified parsed result looks like:
 
 ```elisp
-(:tags ((solo $POSE))
+(:source "(solo $POSE) (:vary $POSE sitting standing) (:seed 42)"
+ :tags ((solo $POSE))
  :vary (("$POSE" sitting standing))
  :seed 42)
 ```
@@ -303,6 +310,10 @@ The flattener examines the input's type with `cond`:
 | Other atom | Convert it to text with `format`. |
 
 The flattener also skips reader wrappers for quote, backquote, and commas. Definitions are validated as tag data before expansion.
+
+`(:artist NAMES...)` has its own branch before ordinary list recursion:
+it flattens the names, lowercases them, converts underscores to spaces,
+and adds an `@` prefix. Ordinary quoted strings retain their spelling.
 
 Consider:
 
@@ -378,7 +389,22 @@ solo, standing, surprised
 
 The nested `cl-loop` expressions build this **Cartesian product**. Each iteration extends every existing combination with each value from the next variation.
 
-The result is a list of plists containing `:label`, `:prompt`, `:seed`, and `:params`. No external process has started yet.
+The result from `danbooru--expand-prompt` is a list of plists containing `:label`, `:prompt`, `:seed`, and `:params`. `danbooru--expand` adds the self-contained `:source` to each job. No external process has started yet.
+
+### Selecting a subset in the editor
+
+`danbooru--buffer-text` checks for an active region when preview or generation
+requests selection support. `danbooru--selected-vary-text` reads the top-level
+forms and finds alternatives fully covered by that region inside one `:vary`.
+It rejects partial alternatives and selections containing the directive's
+header or closing parenthesis.
+
+The helper returns a copy of the source with just those alternatives; it
+does not edit the buffer. Other axes still produce their full combinations.
+Generation saves the full working file but compiles the restricted text,
+so metadata and regeneration preserve the chosen subset. Preview only
+compiles and copies prompts. Deactivate the region with `C-g` to use the
+full prompt again.
 
 ## 8. Definitions compose reusable tag trees
 
@@ -403,7 +429,10 @@ It compiles to:
 
 `danbooru--include-forms` reads libraries relative to the including file. Libraries contain only definitions and further includes. It detects include cycles and imports each canonical path once.
 
-Preview and generation save a self-contained source snapshot after expansion, so later regeneration does not need the original library files.
+Compilation attaches a self-contained source snapshot after expansion.
+Generation remembers it and writes it to image metadata; preview does not
+write files. Later regeneration therefore does not need the original
+library files.
 
 Top-level generation options apply to every variation job, with Emacs settings as fallback. `:steps nil` and `:cfg nil` fall back to the corresponding Emacs setting. For different settings, use separate working prompt files that include the same definitions.
 
@@ -423,13 +452,22 @@ Top-level generation options apply to every variation job, with Emacs settings a
 | `:source` | Self-contained prompt source, needed for regeneration and metadata. |
 | `:seed` | Concrete nonnegative seed submitted to the backend. |
 | `:server` | Backend choice captured when queued. |
-| `:out` | Timestamped PNG path, with an index and label for batches. |
+| `:out` | Timestamped PNG path, with a variation label for batches. |
 
 Seed choice uses the command's override first, then the job's seed, then `danbooru-seed`. A negative requested seed causes one random integer to be chosen for the whole generation call. Every variant in that call reuses it.
 
 Preview shows the requested seed or the setting fallback. The actual random integer is chosen only when jobs are queued.
 
 Capturing `:server` keeps already queued jobs on the same backend even if the global server setting changes. If a process is already running, new jobs are appended to the queue.
+
+`danbooru--output-file` creates a subdirectory based on the current prompt
+file's basename, or uses `danbooru-output-dir` directly without a file.
+The timestamp format is `%m%d-%H%M`. One job uses `MMDD-HHMM.png`; multiple
+jobs use `MMDD-HHMM-LABEL.png`, where `danbooru--slug` converts the expanded
+variation label to a lowercase filename fragment of at most 40 characters.
+The `index` argument only selects the batch naming branch; its number is
+not included. Requests in the same minute or labels sharing a slug can
+reuse paths and overwrite earlier images and sidecars.
 
 ## 10. Asynchronous processes and lexical closures
 
@@ -504,6 +542,12 @@ The JSON contains a format version, self-contained source, resolved prompt, actu
 
 `danbooru-show` also stores source in a buffer-local variable. `danbooru-regenerate` uses that buffer's source when available, otherwise `danbooru-last-source`, and requests a fresh seed. The saved source preserves the variation axes and any selected subset of alternatives.
 
+Regeneration recompiles the whole remembered source, so invoking it from
+one image can rerun several variations. The snapshot preserves authored
+parameters; omitted values still use current Emacs settings and backend
+defaults. The actual seed is recorded separately in JSON and is not reused
+by the reroll command.
+
 The code does not read a sidecar back automatically when an old image is opened in a fresh session. The saved JSON and the current buffer's in-memory metadata are separate mechanisms.
 
 ## 12. Emacs turns these functions into an editor
@@ -542,6 +586,21 @@ Completion combines the tag vocabulary with local and imported `:def` names, rea
 `save-excursion` preserves point while code scans the buffer. `setq-local` and the local argument to `add-hook` install behavior just for the prompt buffer.
 
 The reload code updates key bindings and navigation in existing prompt buffers, because loading the library again does not rerun each buffer's mode initialization.
+
+### The optional group picker
+
+[danbooru-groups.el](danbooru-groups.el) is a separate companion library.
+After loading it, `M-x danbooru-groups-pick` reads `danbooru-groups-file`,
+a JSON object shaped as main group → subgroup → array of tag strings.
+It shows the hierarchy in a `special-mode` buffer with buffer-local
+selection and expansion state.
+
+`TAB` or `SPC` toggles the group or item at point. `RET` inserts selected
+items, separated by spaces, at the saved position in the originating
+buffer; `q` closes the picker. Items are inserted in selection order.
+This picker does not compile or generate prompts and has no default key
+binding in `danbooru-prompt-mode`. Its JSON vocabulary is separate from
+the CSV used by tag completion and from image metadata.
 
 ## 13. Try the compiler without generating an image
 

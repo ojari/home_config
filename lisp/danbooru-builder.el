@@ -20,9 +20,11 @@
 ;;
 ;;   a      add tags (catalog + Danbooru vocabulary, free text for custom)
 ;;   A      add tags of one category (default: the category at point)
-;;   k      remove the tag, alternative, marked tags or person at point
-;;   RET    edit the tag / alternative text, add alternatives, edit person
-;;   M-up/M-down  move a tag within its category or an alternative
+;;   T      add free-form text at any position in the prompt
+;;   t      choose a new position for the free-form text at point
+;;   k      remove the text, tag, alternative, marked tags or person at point
+;;   RET    edit text, tag / alternative, add alternatives, edit person
+;;   M-up/M-down  move a tag within its category, an alternative, or free text
 ;;   m u U  mark, unmark, unmark all
 ;;   v      make a variation of the tag at point or the marked tags,
 ;;          or split the variation at point back into tags
@@ -41,6 +43,12 @@
 ;;
 ;; A .dbb file is readable Lisp data: the tags, persons, variations and
 ;; settings.  Visiting one shows its text; C-c C-c loads it.
+;; Free-form text blocks (T) keep their spelling and punctuation and can
+;; sit before, between or after tags, independently of categories.  The
+;; Prompt order view shows where they go; RET edits, t repositions and
+;; M-up/M-down moves them across tags and other text blocks.  With persons
+;; in natural style, positions are between sentences.  Positions count
+;; prompt parts, so adding/removing tags can shift the surrounding tags.
 ;;
 ;; Images go to output_dir of config.json.  The backend is sd-cli with
 ;; the profile's model arguments, or an sd-server URL (settings menu).
@@ -357,7 +365,15 @@ Variations with the same LINK name step together instead of combining."
                (:constructor danbooru-builder--make-state)
                (:copier nil))
   "The prompt being built."
-  catalog entries persons (style 'tags) (extra "") negative gen)
+  catalog entries persons texts (style 'tags) (extra "") negative gen)
+
+(cl-defstruct (danbooru-builder-text
+               (:constructor danbooru-builder--make-text (text position))
+               (:copier nil))
+  "Literal TEXT at POSITION, the number of prompt parts preceding it.
+Text is independent of tag categories.  Positions beyond the last part
+mean the end of the prompt; blocks at the same position keep list order."
+  text position)
 
 (defun danbooru-builder--scene-category-p (state category)
   "Non-nil when CATEGORY always belongs to the scene in STATE."
@@ -755,8 +771,34 @@ Anima order: quality, count, character, series, @artist, general tags."
 
 (defun danbooru-builder--prompt-parts (state &optional pick)
   "The prompt of STATE for variant PICK as (SEPARATOR . PARTS).
-Joining PARTS with SEPARATOR gives the prompt.  In tags style every
-scene tag is a part and each person's tags are one part."
+Free-form text is interleaved with the generated prompt parts verbatim."
+  (pcase-let ((`(,separator . ,layout) (danbooru-builder--prompt-layout state pick)))
+    (cons separator (mapcar (lambda (part)
+                             (if (danbooru-builder-text-p part)
+                                 (danbooru-builder-text-text part)
+                               part))
+                           layout))))
+
+(defun danbooru-builder--prompt-layout (state &optional pick)
+  "Prompt parts and text blocks of STATE for PICK as (SEPARATOR . LAYOUT)."
+  (pcase-let* ((`(,separator . ,parts) (danbooru-builder--base-prompt-parts state pick))
+               (count (length parts))
+               (texts (cl-stable-sort (copy-sequence (danbooru-builder-state-texts state))
+                                      #'< :key #'danbooru-builder-text-position))
+               (position 0)
+               (layout nil))
+    (while (or parts texts)
+      (if (and texts (<= (min count (danbooru-builder-text-position (car texts)))
+                         position))
+          (push (pop texts) layout)
+        (push (pop parts) layout)
+        (cl-incf position)))
+    (cons separator (nreverse layout))))
+
+(defun danbooru-builder--base-prompt-parts (state &optional pick)
+  "The prompt of STATE for variant PICK as (SEPARATOR . PARTS).
+Joining PARTS with SEPARATOR gives the prompt before free-form text.
+In tags style each tag is a part; natural style uses sentences."
   (let* ((pick (or pick (car (danbooru-builder--variants state))))
          (n (length (danbooru-builder--sections state)))
          (general n)
@@ -801,15 +843,13 @@ scene tag is a part and each person's tags are one part."
                   (when-let* ((scene (ct nil general)))
                     (push (concat "Scene: " (string-join scene ", ") ".") out))
                   (cons " " (append (nreverse out) extra)))
-              (let ((blocks (mapcar (lambda (p)
-                                      (string-join
-                                       (append (unless (string-empty-p (pos p))
-                                                 (list (format "%s %s"
-                                                               (danbooru-builder--person-word p)
-                                                               (pos p))))
-                                               (ct (danbooru-builder-person-id p) general))
-                                       ", "))
-                                    persons)))
+              (let ((blocks (cl-mapcan (lambda (p)
+					 (append (unless (string-empty-p (pos p))
+                                                   (list (format "%s %s"
+								 (danbooru-builder--person-word p)
+								 (pos p))))
+						 (ct (danbooru-builder-person-id p) general)))
+                                       persons)))
                 (cons ", " (seq-remove #'string-empty-p
                                        (append (cl-loop for i below n append (section i))
                                                blocks
@@ -919,11 +959,12 @@ scene tag is a part and each person's tags are one part."
                    (concat "▸ " (danbooru-builder--alt-text alt))))))))))))
 
 (defun danbooru-builder--location ()
-  "What point is on: (ALT ENTRY SECTION LINE)."
+  "What point is on: (ALT ENTRY SECTION LINE TEXT)."
   (list (danbooru-builder--prop 'danbooru-builder-alt)
         (danbooru-builder--prop 'danbooru-builder-entry)
         (danbooru-builder--prop 'danbooru-builder-section)
-        (line-number-at-pos)))
+        (line-number-at-pos)
+        (danbooru-builder--prop 'danbooru-builder-text)))
 
 (defun danbooru-builder--goto-prop (prop value)
   "Move to the first line whose PROP is VALUE; return non-nil if found."
@@ -936,9 +977,10 @@ scene tag is a part and each person's tags are one part."
 
 (defun danbooru-builder--restore (location)
   "Move back to LOCATION from `danbooru-builder--location'."
-  (pcase-let ((`(,alt ,entry ,section ,line) location))
+  (pcase-let ((`(,alt ,entry ,section ,line ,text) location))
     (goto-char (point-min))
-    (or (danbooru-builder--goto-prop 'danbooru-builder-alt alt)
+    (or (danbooru-builder--goto-prop 'danbooru-builder-text text)
+        (danbooru-builder--goto-prop 'danbooru-builder-alt alt)
         (danbooru-builder--goto-prop 'danbooru-builder-entry entry)
         ;; the thing at point is gone: stay on the same line if it is
         ;; still in the same section, else go to the section
@@ -966,6 +1008,8 @@ scene tag is a part and each person's tags are one part."
            (variants (danbooru-builder--variant-count state))
            (extra (danbooru-builder-state-extra state)))
       (insert "\n" (propertize (make-string 60 ?─) 'face 'shadow) "\n")
+      (when (danbooru-builder-state-texts state)
+        (danbooru-builder--insert-layout state))
       (unless (string-empty-p (or extra ""))
         (insert (propertize "extra: " 'face 'shadow) extra "\n"))
       (insert (propertize prompt 'face 'danbooru-builder-prompt) "\n"
@@ -983,6 +1027,28 @@ scene tag is a part and each person's tags are one part."
       (set-window-start w (min start (point-max)) t))
     (set-buffer-modified-p (danbooru-builder--modified-p))
     (force-mode-line-update)))
+
+(defun danbooru-builder--insert-layout (state)
+  "Show STATE's text blocks among the prompt parts they accompany."
+  (let ((print-escape-newlines t)
+        (props '(danbooru-builder-section prompt-order))
+        (position 0))
+    (danbooru-builder--insert-line
+     props (propertize "Prompt order — T add text, RET edit, t place, M-↑/↓ move"
+                       'face 'danbooru-builder-heading))
+    (dolist (part (cdr (danbooru-builder--prompt-layout state)))
+      (if (danbooru-builder-text-p part)
+          (danbooru-builder--insert-line
+           (append props (list 'danbooru-builder-text part
+                               'danbooru-builder-position position))
+           "  text  " (propertize (prin1-to-string (danbooru-builder-text-text part))
+                                  'face 'danbooru-builder-prompt))
+        (cl-incf position)
+        (danbooru-builder--insert-line
+         (append props (list 'danbooru-builder-position position))
+         "        " (propertize (replace-regexp-in-string "\n" " ↵ " part)
+                               'face 'shadow))))
+    (insert "\n")))
 
 (defun danbooru-builder--header-line ()
   "Header line: model settings and batch size."
@@ -1160,6 +1226,69 @@ Text matching no known tag is added as a custom tag after asking."
 
 ;;; ── Commands ──
 
+(defun danbooru-builder--read-text-position (state &optional default)
+  "Read a position for free text in STATE, initially DEFAULT."
+  (let* ((parts (cdr (danbooru-builder--base-prompt-parts state)))
+         (choices (cons '("0: At start" . 0)
+                        (cl-loop for part in parts for i from 1
+                                 collect (cons (format "%d: After %s" i
+                                                       (truncate-string-to-width
+                                                        (replace-regexp-in-string
+                                                         "\n" " " part)
+                                                        90 nil nil "…"))
+                                               i))))
+         (default (min (length parts) (or default (length parts)))))
+    (cdr (assoc (completing-read "Text position: " choices nil t nil nil
+                                (car (nth default choices)))
+                choices))))
+
+(defun danbooru-builder-add-text (text position)
+  "Add literal TEXT at prompt POSITION, independent of tag categories.
+POSITION counts generated prompt parts before the text: zero is the start.
+In tags style a part is a tag; in natural style it is a sentence.
+Use M-up/M-down on a text block to move it through the prompt order."
+  (interactive
+   (let* ((state (danbooru-builder--st))
+          (text (read-string "Free-form text: ")))
+     (when (string-blank-p text) (user-error "Text is empty"))
+     (list text (danbooru-builder--read-text-position
+                 state (danbooru-builder--prop 'danbooru-builder-position)))))
+  (unless (and (stringp text) (not (string-blank-p text)) (natnump position))
+    (user-error "Text must be nonempty and position must be a nonnegative integer"))
+  (let* ((state (danbooru-builder--st))
+         (block (danbooru-builder--make-text text position)))
+    (setf (danbooru-builder-state-texts state)
+          (append (danbooru-builder-state-texts state) (list block)))
+    (danbooru-builder--render)
+    (danbooru-builder--goto-prop 'danbooru-builder-text block)))
+
+(defun danbooru-builder-place-text ()
+  "Choose a new prompt position for the free-form text at point."
+  (interactive)
+  (let* ((state (danbooru-builder--st))
+         (block (or (danbooru-builder--prop 'danbooru-builder-text)
+                    (user-error "No free-form text here"))))
+    (setf (danbooru-builder-text-position block)
+          (danbooru-builder--read-text-position
+           state (danbooru-builder-text-position block)))
+    (danbooru-builder--render)))
+
+(defun danbooru-builder--move-text (state block dir)
+  "Move BLOCK through STATE's prompt layout by DIR (-1 or 1)."
+  (let* ((layout (cdr (danbooru-builder--prompt-layout state)))
+         (i (+ (cl-position block layout :test #'eq) dir))
+         (other (and (>= i 0) (nth i layout)))
+         (position 0)
+         texts)
+    (when other
+      (dolist (part (danbooru-builder--swap layout block other))
+        (if (danbooru-builder-text-p part)
+            (progn
+              (setf (danbooru-builder-text-position part) position)
+              (push part texts))
+          (cl-incf position)))
+      (setf (danbooru-builder-state-texts state) (nreverse texts)))))
+
 (defun danbooru-builder--add-items (items)
   "Add ITEMS to the section at point, after the entry at point when it fits."
   (let* ((state (danbooru-builder--st))
@@ -1190,13 +1319,17 @@ Catalog tags, the Danbooru vocabulary and free text (a custom tag)."
    (danbooru-builder--read-items (format "Add %s: " category) category)))
 
 (defun danbooru-builder-remove ()
-  "Remove the marked tags, or the alternative, tag or person at point."
+  "Remove marked tags, or the text, alternative, tag or person at point."
   (interactive)
   (let ((state (danbooru-builder--st))
         (alt (danbooru-builder--prop 'danbooru-builder-alt))
         (entry (danbooru-builder--prop 'danbooru-builder-entry))
         (section (danbooru-builder--prop 'danbooru-builder-section)))
     (cond
+     ((danbooru-builder--prop 'danbooru-builder-text)
+      (setf (danbooru-builder-state-texts state)
+            (delq (danbooru-builder--prop 'danbooru-builder-text)
+                  (danbooru-builder-state-texts state))))
      (danbooru-builder--marked
       (dolist (e danbooru-builder--marked)
         (danbooru-builder--remove state e))
@@ -1217,13 +1350,18 @@ Catalog tags, the Danbooru vocabulary and free text (a custom tag)."
 (defun danbooru-builder-edit ()
   "Edit what is at point.
 A tag or alternative: its prompt text.  A variation: add alternatives.
-A person heading: the person."
+A person heading: the person.  A free-form text block: its literal text."
   (interactive)
   (danbooru-builder--st)
   (let ((alt(danbooru-builder--prop 'danbooru-builder-alt))
         (entry (danbooru-builder--prop 'danbooru-builder-entry))
         (section (danbooru-builder--prop 'danbooru-builder-section)))
     (cond
+     ((danbooru-builder--prop 'danbooru-builder-text)
+      (let* ((block (danbooru-builder--prop 'danbooru-builder-text))
+             (text (read-string "Free-form text: " (danbooru-builder-text-text block))))
+        (when (string-blank-p text) (user-error "Text is empty"))
+        (setf (danbooru-builder-text-text block) text)))
      ((and entry (danbooru-builder-entry-vary entry) (not alt))
       (danbooru-builder--add-alternatives entry))
      ((or alt entry)
@@ -1328,17 +1466,21 @@ variation: split its active alternatives back into tags."
   (mapcar (lambda (x) (cond ((eq x a) b) ((eq x b) a) (t x))) list))
 
 (defun danbooru-builder--move (dir)
-  "Move the alternative or tag at point one step; DIR is -1 or 1."
+  "Move the text, alternative or tag at point one step; DIR is -1 or 1."
   (let* ((state (danbooru-builder--st))
+         (text (danbooru-builder--prop 'danbooru-builder-text))
          (alt (danbooru-builder--prop 'danbooru-builder-alt))
-         (entry (or (danbooru-builder--prop 'danbooru-builder-entry)
-                    (user-error "No tag here"))))
-    (if alt
-        (let* ((alts (danbooru-builder-entry-alts entry))
-               (other (nth (+ (cl-position alt alts) dir) alts)))
-          (when (and other (>= (+ (cl-position alt alts) dir) 0))
-            (setf (danbooru-builder-entry-alts entry)
-                  (danbooru-builder--swap alts alt other))))
+         (entry (danbooru-builder--prop 'danbooru-builder-entry)))
+    (cond
+     (text (danbooru-builder--move-text state text dir))
+     ((null entry) (user-error "No tag or free-form text here"))
+     (alt
+      (let* ((alts (danbooru-builder-entry-alts entry))
+             (other (nth (+ (cl-position alt alts) dir) alts)))
+        (when (and other (>= (+ (cl-position alt alts) dir) 0))
+          (setf (danbooru-builder-entry-alts entry)
+                (danbooru-builder--swap alts alt other)))))
+     (t
       (let* ((siblings (danbooru-builder--entries state (danbooru-builder-entry-owner entry)
                                                   (danbooru-builder-entry-category entry)))
              (i (+ (cl-position entry siblings) dir))
@@ -1346,16 +1488,16 @@ variation: split its active alternatives back into tags."
         (when other
           (setf (danbooru-builder-state-entries state)
                 (danbooru-builder--swap (danbooru-builder-state-entries state)
-                                        entry other)))))
+                                        entry other))))))
     (danbooru-builder--render)))
 
 (defun danbooru-builder-move-up ()
-  "Move the tag or alternative at point up."
+  "Move the tag, alternative or free-form text at point up."
   (interactive)
   (danbooru-builder--move -1))
 
 (defun danbooru-builder-move-down ()
-  "Move the tag or alternative at point down."
+  "Move the tag, alternative or free-form text at point down."
   (interactive)
   (danbooru-builder--move 1))
 
@@ -1709,6 +1851,12 @@ Images queue behind a running generation."
                (or (danbooru-builder-state-extra state) "")
                (or (danbooru-builder-state-negative state) "")
                (danbooru-builder-state-gen state))
+       " :texts\n ("
+       (lines (mapcar (lambda (block)
+                       (list :text (danbooru-builder-text-text block)
+                             :position (danbooru-builder-text-position block)))
+                     (danbooru-builder-state-texts state)))
+       ")\n"
        " :persons\n ("
        (lines (mapcar (lambda (p)
                         (list :id (danbooru-builder-person-id p)
@@ -1765,6 +1913,16 @@ the wrong type keep the profile defaults."
       (let ((extra (plist-get data :extra)) (neg (plist-get data :negative)))
         (setf (danbooru-builder-state-extra state) (if (stringp extra) extra ""))
         (when (stringp neg) (setf (danbooru-builder-state-negative state) neg)))
+      (setf (danbooru-builder-state-texts state)
+            (mapcar
+             (lambda (block)
+               (let ((text (and (plistp block) (plist-get block :text)))
+                     (position (plist-get block :position)))
+                 (unless (and (stringp text) (not (string-blank-p text))
+                              (natnump position))
+                   (bad (format "free-form text %S" block)))
+                 (danbooru-builder--make-text text position)))
+             (plist-get data :texts)))
       (dolist (p (plist-get data :persons))
         (let ((id (and (plistp p) (plist-get p :id)))
               (type (plist-get p :type))
@@ -1964,14 +2122,20 @@ FILE saves there instead and makes it the builder's file."
                           (split-string (danbooru-builder-alt-tag alt) ","))))
      ", ")))
 
-(defun danbooru-builder--export-text (state &optional single)
+(defun danbooru-builder--export-text (state &optional single expanded)
   "STATE as the text of a .danbooru prompt file.
 Each variation becomes a $MARKER with a (:vary ...) of its alternatives.
 In tags style every part of the prompt is one string, unless SINGLE,
-which writes the whole prompt as one string."
+which writes the whole prompt as one string.  EXPANDED uses whole-prompt
+alternatives to preserve text positions when variations change tag counts."
   (let* ((print-escape-newlines t)
          (gen (danbooru-builder-state-gen state))
-         (axes (danbooru-builder--axes state))
+         (axes (unless expanded (danbooru-builder--axes state)))
+         (prompts (and expanded
+                       (mapcar (lambda (variant)
+                                 (danbooru-builder--full-prompt state variant))
+                               (danbooru-builder--variants state))))
+         (whole-marker "$PROMPT")
          used
          (pick (mapcar (lambda (axis)
                          (let ((marker (danbooru-builder--marker
@@ -1991,33 +2155,48 @@ which writes the whole prompt as one string."
          (seed (plist-get gen :seed))
          (end (plist-get gen :seed-end))
          (negative (or (danbooru-builder-state-negative state) "")))
-    (concat
-     ";;; Exported from the danbooru builder"
-     (if danbooru-builder--file
-         (format " (%s)" (file-name-nondirectory danbooru-builder--file))
-       "")
-     (format-time-string ", %Y-%m-%d %H:%M.\n")
-     (format ";; Not in this format: profile %s, %s/%s, %s style%s.\n"
-             (plist-get gen :profile) (plist-get gen :sampler) (plist-get gen :scheduler)
-             (danbooru-builder-state-style state)
-             (if (> end seed -1) (format ", seeds %d..%d/%d" seed end (plist-get gen :seed-step)) ""))
-     ";; C-c C-c generates, C-c C-p shows the prompt.\n\n"
-     "("
-     (mapconcat (lambda (s) (if (member s markers) s (format "%S" s))) strings "\n ")
-     ")\n\n"
-     (mapconcat (lambda (cell)
-                  (format "(:vary %s %s)\n"
-                          (danbooru-builder-alt-tag (cdr cell))
-                          (mapconcat (lambda (alt)
-                                       (format "%S" (danbooru-builder--alt-prompt-text
-                                                     state (car cell) alt)))
-                                     (cdr (assq (car cell) axes))
-                                     "\n       ")))
-                pick "")
-     (if (string-empty-p negative) "" (format "(:neg %S)\n" negative))
-     (format "(:size %d %d)\n(:steps %d)\n(:cfg %s)\n(:seed %d)\n"
-             (plist-get gen :width) (plist-get gen :height)
-             (plist-get gen :steps) (plist-get gen :cfg) seed))))
+    (when expanded
+      (while (seq-some (lambda (prompt) (string-search whole-marker prompt)) prompts)
+        (setq whole-marker (concat whole-marker "_")))
+      (setq strings (list whole-marker) markers (list whole-marker)))
+    (let ((text (concat
+                 ";;; Exported from the danbooru builder"
+                 (if danbooru-builder--file
+                     (format " (%s)" (file-name-nondirectory danbooru-builder--file))
+                   "")
+                 (format-time-string ", %Y-%m-%d %H:%M.\n")
+                 (format ";; Not in this format: profile %s, %s/%s, %s style%s.\n"
+                         (plist-get gen :profile) (plist-get gen :sampler) (plist-get gen :scheduler)
+                         (danbooru-builder-state-style state)
+                         (if (> end seed -1) (format ", seeds %d..%d/%d" seed end (plist-get gen :seed-step)) ""))
+                 ";; C-c C-c generates, C-c C-p shows the prompt.\n\n"
+                 "("
+                 (mapconcat (lambda (s) (if (member s markers) s (format "%S" s))) strings "\n ")
+                 ")\n\n"
+                 (mapconcat (lambda (cell)
+                              (format "(:vary %s %s)\n"
+                                      (danbooru-builder-alt-tag (cdr cell))
+                                      (mapconcat (lambda (alt)
+                                                   (format "%S" (danbooru-builder--alt-prompt-text
+                                                                 state (car cell) alt)))
+                                                 (cdr (assq (car cell) axes))
+                                                 "\n       ")))
+                            pick "")
+                 (if expanded
+                     (format "(:vary %s %s)\n" whole-marker
+                             (mapconcat (lambda (prompt) (format "%S" prompt)) prompts "\n       "))
+                   "")
+                 (if (string-empty-p negative) "" (format "(:neg %S)\n" negative))
+                 (format "(:size %d %d)\n(:steps %d)\n(:cfg %s)\n(:seed %d)\n"
+                         (plist-get gen :width) (plist-get gen :height)
+                         (plist-get gen :steps) (plist-get gen :cfg) seed))))
+      ;; A compound alternative occupies more parts than its export marker.
+      ;; Whole-prompt alternatives also retain repeated literal text, which
+      ;; the prompt compiler would otherwise deduplicate as separate tags.
+      (if (and (danbooru-builder-state-texts state) (not expanded)
+               (not (danbooru-builder--export-matches-p state text)))
+          (danbooru-builder--export-text state single t)
+        text))))
 
 (defun danbooru-builder--export-matches-p (state text)
   "Non-nil when danbooru.el makes the builder's prompts from TEXT."
@@ -2057,8 +2236,9 @@ part of that format and are noted in a comment."
     (when (string-empty-p (danbooru-builder--build-prompt state))
       (user-error "The prompt is empty, nothing to export"))
     (cond
-     ((seq-some (lambda (axis) (danbooru-builder-entry-link (car axis)))
-                (danbooru-builder--axes state))
+     ((and (seq-some (lambda (axis) (danbooru-builder-entry-link (car axis)))
+                    (danbooru-builder--axes state))
+           (not (danbooru-builder--export-matches-p state text)))
       (display-warning
        'danbooru-builder
        (format "danbooru.el has no linked variations: they are exported as independent \
@@ -2304,6 +2484,8 @@ part of that format and are noted in a comment."
   :parent special-mode-map
   "a" #'danbooru-builder-add
   "A" #'danbooru-builder-add-in-category
+  "T" #'danbooru-builder-add-text
+  "t" #'danbooru-builder-place-text
   "k" #'danbooru-builder-remove
   "C-k" #'danbooru-builder-remove
   "d" #'danbooru-builder-remove
