@@ -20,8 +20,8 @@
 ;;
 ;;   a      add tags (catalog + Danbooru vocabulary, free text for custom)
 ;;   A      add tags of one category (default: the category at point)
-;;   T      add free-form text at any position in the prompt
-;;   t      choose a new position for the free-form text at point
+;;   T      add free-form text under the category at point (or choose one)
+;;   t      change the category of the free-form text at point
 ;;   k      remove the text, tag, alternative, marked tags or person at point
 ;;   RET    edit text, tag / alternative, add alternatives, edit person
 ;;   M-up/M-down  move a tag within its category, an alternative, or free text
@@ -29,6 +29,7 @@
 ;;   v      make a variation of the tag at point or the marked tags,
 ;;          or split the variation at point back into tags
 ;;   x      switch the alternative at point off or on
+;;   i      show the latest generated image for the alternative at point
 ;;   l      link the variation at point with others: linked variations
 ;;          step together (1st with 1st, 2nd with 2nd) instead of combining
 ;;   P e    add a person, edit the person at point
@@ -43,12 +44,11 @@
 ;;
 ;; A .dbb file is readable Lisp data: the tags, persons, variations and
 ;; settings.  Visiting one shows its text; C-c C-c loads it.
-;; Free-form text blocks (T) keep their spelling and punctuation and can
-;; sit before, between or after tags, independently of categories.  The
-;; Prompt order view shows where they go; RET edits, t repositions and
-;; M-up/M-down moves them across tags and other text blocks.  With persons
-;; in natural style, positions are between sentences.  Positions count
-;; prompt parts, so adding/removing tags can shift the surrounding tags.
+;; Free-form text blocks (T) keep their spelling and punctuation and follow
+;; the tags in their category, under the current person or Scene.  RET edits,
+;; t changes category and M-up/M-down reorders text within that category.
+;; Older files with numbered text positions still load in the Prompt order
+;; view; t moves such a block into a category.
 ;;
 ;; Images go to output_dir of config.json.  The backend is sd-cli with
 ;; the profile's model arguments, or an sd-server URL (settings menu).
@@ -69,15 +69,19 @@
                                     (bound-and-true-p byte-compile-current-file)
                                     buffer-file-name))))
 
+(declare-function danbooru-builder-source-convert "danbooru-builder-source" (data catalog &optional skip-parity))
+(declare-function danbooru-builder-import "danbooru-builder-source" (file &optional destination catalog))
+
 ;;; ── Settings ──
 
 (defgroup danbooru-builder nil
   "Build Anima prompts from a Danbooru tag catalog."
   :group 'multimedia)
 
-(defcustom danbooru-builder-directory "~/source/get_tags/"
-  "Directory with config.json, tags/*.json and tags/vocab/*.csv."
-  :type 'directory)
+(when (and (boundp 'danbooru-builder-directory)
+           (not (eq (indirect-variable 'danbooru-builder-directory) 'danbooru-catalog-directory)))
+  (setq danbooru-catalog-directory (symbol-value 'danbooru-builder-directory)))
+(defvaralias 'danbooru-builder-directory 'danbooru-catalog-directory)
 
 (defcustom danbooru-builder-output-dir nil
   "Directory for generated images.
@@ -136,9 +140,8 @@ config.json key: prompt_sections.")
   "Categories whose tags go into the prompt in catalog order.
 config.json key: ordered_categories.")
 
-(defconst danbooru-builder--vocab-type-category
-  '((1 . "artist") (3 . "series") (4 . "character") (5 . "quality"))
-  "Danbooru CSV tag type -> category.  Other types go to custom.")
+(defconst danbooru-builder--vocab-type-category danbooru-catalog-type-categories
+  "Vocabulary type categories from the shared catalog.")
 
 (defconst danbooru-builder--person-types
   '(("girl" "girl" "girl") ("woman" "girl" "woman") ("boy" "boy" "boy")
@@ -166,10 +169,10 @@ config.json key: ordered_categories.")
 
 (cl-defstruct (danbooru-builder-item
                (:constructor danbooru-builder--make-item
-                             (category group label tag &optional desc))
+                             (category group label tag &optional desc shared))
                (:copier nil))
   "One tag of the catalog or vocabulary."
-  category group label tag desc)
+  category group label tag desc shared)
 
 (cl-defstruct (danbooru-builder-catalog
                (:constructor danbooru-builder--make-catalog)
@@ -178,139 +181,78 @@ config.json key: ordered_categories.")
   config      ; config.json as an alist with symbol keys
   categories  ; ((CATEGORY . ITEMS) ...) in catalog order, custom last
   candidates  ; completion candidates: catalog labels, then vocabulary
-  lookup)     ; candidate -> item, or (TAG TYPE COUNT) for vocabulary
+  lookup      ; candidate -> item
+  shared)     ; shared vocabulary snapshot, separate from config
 
 (defvar danbooru-builder--catalog nil "The loaded catalog.")
 
-(defun danbooru-builder--json-file (file &rest args)
-  "Parse JSON FILE with ARGS for `json-parse-buffer'."
-  (with-temp-buffer
-    (let ((coding-system-for-read 'utf-8))
-      (insert-file-contents file))
-    (apply #'json-parse-buffer args)))
+(defalias 'danbooru-builder--json-file #'danbooru-catalog-json-file)
 
-(defun danbooru-builder--pretty-label (key)
-  "Label shown for catalog KEY: underscores become spaces in longer keys."
-  (if (> (length key) 3) (string-replace "_" " " key) key))
+(defun danbooru-builder--catalog-item (item)
+  "Adapt shared ITEM to the legacy builder's prompt representation."
+  (let* ((tag (danbooru-catalog-item-tag item))
+         (shown (if (danbooru-catalog-item-vocabulary item)
+                    (if (string-match-p danbooru-builder--score-re tag) tag
+                      (string-replace "_" " " tag)) tag)))
+    (danbooru-builder--make-item
+     (danbooru-catalog-item-category item)
+     (string-join (danbooru-catalog-item-path item) " / ")
+     (if (danbooru-catalog-item-vocabulary item) shown (danbooru-catalog-item-label item))
+     shown (danbooru-catalog-item-description item) item)))
 
-(defun danbooru-builder--parse-category (category data)
-  "Flatten the JSON DATA of CATEGORY into a list of items.
-DATA is a tag, an array of tags, {label: tag}, {label: {tag, desc}} or
-{group: DATA}; nested groups are joined with \" / \"."
-  (let (items)
-    (cl-labels
-        ((add (group label tag &optional desc)
-           (push (danbooru-builder--make-item category group label tag desc) items))
-         (walk (group node)
-           (cond
-            ((stringp node) (add group node node))
-            ((vectorp node)
-             (seq-doseq (tag node)
-               (when (stringp tag) (add group tag tag))))
-            ((consp node)
-             (pcase-dolist (`(,key . ,value) node)
-               (let ((k (symbol-name key)))
-                 (unless (string-prefix-p "_" k)
-                   (cond
-                    ((stringp value)
-                     (add group (danbooru-builder--pretty-label k) value))
-                    ((and (consp value) (stringp (alist-get 'tag value)))
-                     (add group (danbooru-builder--pretty-label k)
-                          (alist-get 'tag value) (alist-get 'desc value)))
-                    (t (walk (if (string-empty-p group) k (concat group " / " k))
-                             value))))))))))
-      (walk "" data))
-    (nreverse items)))
-
-(defun danbooru-builder--load-vocab (dir)
-  "Read the vocabulary CSV files in DIR: tag,type,count,\"aliases\".
-Return a hash table of shown tag (underscores as spaces) -> (TAG TYPE COUNT)."
-  (let ((vocab (make-hash-table :test #'equal :size 150000)))
-    (dolist (file (and (file-directory-p dir)
-                       (directory-files dir t "\\.csv\\'")))
-      (with-temp-buffer
-        (let ((coding-system-for-read 'utf-8))
-          (insert-file-contents file))
-        (goto-char (point-min))
-        (while (re-search-forward
-                "^\\([^,\n\"]+\\),\\([0-9]*\\),\\([0-9]*\\)" nil t)
-          (let* ((tag (match-string-no-properties 1))
-                 (shown (if (string-match-p danbooru-builder--score-re tag)
-                            tag
-                          (string-replace "_" " " tag)))
-                 (count (string-to-number (match-string 3)))
-                 (old (gethash shown vocab)))
-            (when (or (null old) (> count (nth 2 old)))
-              (puthash shown (list tag (string-to-number (match-string 2)) count)
-                       vocab))))))
-    vocab))
-
-(defun danbooru-builder--load-catalog ()
-  "Read config.json, the tag files and the vocabulary; return a catalog."
-  (let* ((dir (file-name-as-directory (expand-file-name danbooru-builder-directory)))
-         (config (danbooru-builder--json-file
-                  (expand-file-name "config.json" dir)
-                  :object-type 'alist :array-type 'list
-                  :null-object nil :false-object nil))
+(defun danbooru-builder--load-catalog (&optional shared)
+  "Project SHARED vocabulary and separately loaded builder configuration."
+  (let* ((shared (or shared (danbooru-catalog-get)))
+         (file (expand-file-name "config.json" danbooru-builder-directory))
+         (config (and (file-exists-p file)
+                      (danbooru-builder--json-file file :object-type 'alist :array-type 'list
+                                                  :null-object nil :false-object nil)))
          (order (alist-get 'category_order config))
-         table errors)
-    (dolist (file (directory-files (expand-file-name "tags" dir) t "\\.json\\'"))
-      (condition-case err
-          (pcase-dolist (`(,key . ,value)
-                         (danbooru-builder--json-file
-                          file :object-type 'alist :array-type 'array
-                          :null-object nil :false-object nil))
-            (let ((cat (symbol-name key)))
-              (unless (or (string-prefix-p "_" cat)
-                          (equal cat danbooru-builder--custom))
-                (let ((cell (assoc cat table)))
-                  (unless cell
-                    (setq cell (list cat))
-                    (push cell table))
-                  (setcdr cell (append (cdr cell)
-                                       (danbooru-builder--parse-category cat value)))))))
-        (error (push (format "%s: %s" (file-name-nondirectory file)
-                             (error-message-string err))
-                     errors))))
-    ;; vocabulary types file tags into these even without a tag file
-    (dolist (cell danbooru-builder--vocab-type-category)
-      (unless (assoc (cdr cell) table)
-        (push (list (cdr cell)) table)))
-    (let* ((names (mapcar #'car table))
+         (lookup (make-hash-table :test #'equal)) table candidates)
+    (dolist (record
+             (append
+              (seq-remove #'danbooru-catalog-item-vocabulary (danbooru-catalog-items shared))
+              (sort (seq-filter
+                     (lambda (item)
+                       (and (danbooru-catalog-item-vocabulary item)
+                            (eq item (gethash (danbooru-catalog-item-tag item)
+                                              (danbooru-catalog-lookup shared)))))
+                     (danbooru-catalog-items shared))
+                    (lambda (a b) (> (danbooru-catalog-item-count a)
+                                     (danbooru-catalog-item-count b))))))
+      (let* ((item (danbooru-builder--catalog-item record))
+             (category (danbooru-builder-item-category item))
+             (label (danbooru-builder-item-label item))
+             (cell (assoc category table))
+             (candidate label))
+        (unless cell (setq cell (list category)) (push cell table))
+        ;; Vocabulary is available for completion without filling category views
+        ;; with the entire CSV.  Hierarchical catalog order remains intact.
+        (unless (danbooru-catalog-item-vocabulary record)
+          (setcdr cell (append (cdr cell) (list item))))
+        (when (gethash candidate lookup)
+          (setq candidate (format "%s · %s" label category)))
+        (when (gethash candidate lookup)
+          (setq candidate (format "%s · %s" candidate (danbooru-catalog-item-id record))))
+        (puthash candidate item lookup)
+        (push candidate candidates)))
+    (dolist (category (cons "custom" (mapcar #'cdr danbooru-builder--vocab-type-category)))
+      (unless (assoc category table) (push (list category) table)))
+    (let* ((names (delete "custom" (mapcar #'car table)))
            (ordered (append (seq-filter (lambda (c) (member c names)) order)
-                            (sort (seq-remove (lambda (c) (member c order)) names)
-                                  #'string<)))
-           (categories (append (mapcar (lambda (c) (assoc c table)) ordered)
-                               (list (list danbooru-builder--custom))))
-           (vocab (danbooru-builder--load-vocab (expand-file-name "tags/vocab" dir)))
-           (lookup (make-hash-table :test #'equal :size (+ 2000 (hash-table-count vocab))))
-           cands vocab-cands)
-      (dolist (cell categories)
-        (dolist (item (cdr cell))
-          (let ((cand (danbooru-builder-item-label item)))
-            (when (gethash cand lookup)
-              (setq cand (format "%s · %s" cand (car cell))))
-            (unless (gethash cand lookup)
-              (puthash cand item lookup)
-              (push cand cands)))))
-      (maphash (lambda (shown entry)
-                 (unless (gethash shown lookup)
-                   (puthash shown entry lookup)
-                   (push (cons shown (nth 2 entry)) vocab-cands)))
-               vocab)
-      (setq vocab-cands (sort vocab-cands (lambda (a b) (> (cdr a) (cdr b)))))
-      (when errors
-        (display-warning 'danbooru-builder (string-join (nreverse errors) "\n")))
+                            (sort (seq-remove (lambda (c) (member c order)) names) #'string<))))
       (danbooru-builder--make-catalog
-       :config config
-       :categories categories
-       :candidates (nconc (nreverse cands) (mapcar #'car vocab-cands))
-       :lookup lookup))))
+       :shared shared :config config :lookup lookup :candidates (nreverse candidates)
+       :categories (append (mapcar (lambda (c) (assoc c table)) ordered)
+                           (list (assoc "custom" table)))))))
 
 (defun danbooru-builder--catalog ()
-  "The loaded catalog, loading it on first use."
-  (or danbooru-builder--catalog
-      (setq danbooru-builder--catalog (danbooru-builder--load-catalog))))
+  "Return a builder projection of the current shared vocabulary snapshot."
+  (let ((shared (danbooru-catalog-get)))
+    (unless (and danbooru-builder--catalog
+                 (eq shared (danbooru-builder-catalog-shared danbooru-builder--catalog)))
+      (setq danbooru-builder--catalog (danbooru-builder--load-catalog shared)))
+    danbooru-builder--catalog))
 
 (defun danbooru-builder--cfg (catalog key &optional default)
   "Value of KEY in the config of CATALOG, DEFAULT when absent."
@@ -368,12 +310,25 @@ Variations with the same LINK name step together instead of combining."
   catalog entries persons texts (style 'tags) (extra "") negative gen)
 
 (cl-defstruct (danbooru-builder-text
-               (:constructor danbooru-builder--make-text (text position))
+               (:constructor danbooru-builder--make-text
+                             (text &optional position category owner))
                (:copier nil))
-  "Literal TEXT at POSITION, the number of prompt parts preceding it.
-Text is independent of tag categories.  Positions beyond the last part
-mean the end of the prompt; blocks at the same position keep list order."
-  text position)
+  "Literal TEXT following the tags of OWNER in CATEGORY.
+OWNER is a person id or nil for the scene.  POSITION is only used for
+legacy blocks without a category; it counts preceding prompt parts."
+  text position category owner)
+
+(defun danbooru-builder--texts (state owner category)
+  "Text blocks of OWNER in CATEGORY, in insertion order."
+  (seq-filter (lambda (block)
+                (and (equal (danbooru-builder-text-category block) category)
+                     (eql (danbooru-builder-text-owner block) owner)))
+              (danbooru-builder-state-texts state)))
+
+(defun danbooru-builder--positional-texts (state)
+  "Legacy text blocks of STATE that still use numbered positions."
+  (seq-remove #'danbooru-builder-text-category
+              (danbooru-builder-state-texts state)))
 
 (defun danbooru-builder--scene-category-p (state category)
   "Non-nil when CATEGORY always belongs to the scene in STATE."
@@ -431,11 +386,18 @@ mean the end of the prompt; blocks at the same position keep list order."
         (sort entries (lambda (a b) (< (funcall pos a) (funcall pos b))))))))
 
 (defun danbooru-builder--owner-categories (state owner)
-  "Categories OWNER has entries in, in display order."
-  (sort (delete-dups (mapcar #'danbooru-builder-entry-category
-                             (seq-filter (lambda (e)
-                                           (eql (danbooru-builder-entry-owner e) owner))
-                                         (danbooru-builder-state-entries state))))
+  "Categories OWNER has entries or text in, in display order."
+  (sort (delete-dups
+         (append
+          (mapcar #'danbooru-builder-entry-category
+                  (seq-filter (lambda (e) (eql (danbooru-builder-entry-owner e) owner))
+                              (danbooru-builder-state-entries state)))
+          (mapcar #'danbooru-builder-text-category
+                  (seq-filter
+                   (lambda (block)
+                     (and (danbooru-builder-text-category block)
+                          (eql (danbooru-builder-text-owner block) owner)))
+                   (danbooru-builder-state-texts state)))))
         (lambda (a b)
           (danbooru-builder--key< (danbooru-builder--display-key state a)
                                   (danbooru-builder--display-key state b)))))
@@ -528,11 +490,14 @@ provide."
     person))
 
 (defun danbooru-builder--remove-person (state person)
-  "Remove PERSON and their tags from STATE."
+  "Remove PERSON and their tags and text from STATE."
   (let ((id (danbooru-builder-person-id person)))
     (setf (danbooru-builder-state-entries state)
           (seq-remove (lambda (e) (eql (danbooru-builder-entry-owner e) id))
                       (danbooru-builder-state-entries state))
+          (danbooru-builder-state-texts state)
+          (seq-remove (lambda (block) (eql (danbooru-builder-text-owner block) id))
+                      (danbooru-builder-state-texts state))
           (danbooru-builder-state-persons state)
           (delq person (danbooru-builder-state-persons state)))))
 
@@ -709,7 +674,8 @@ The last group changes fastest.  No variations gives one empty pick."
   "Alternatives whose text goes into the prompt as is: export placeholders.")
 
 (defun danbooru-builder--collect (state pick owner section)
-  "Prompt tags of OWNER in prompt SECTION for variant PICK, without duplicates."
+  "Prompt parts of OWNER in SECTION for PICK, with text after each category.
+Tags are deduplicated; literal text blocks retain spelling and repetition."
   (let (out seen)
     (dolist (cat (danbooru-builder--owner-categories state owner))
       (when (= (danbooru-builder--section-of state cat) section)
@@ -723,7 +689,12 @@ The last group changes fastest.  No variations gives one empty pick."
                            (danbooru-builder--format-tag state piece cat))))
                 (unless (or (string-empty-p tag) (member (downcase tag) seen))
                   (push (downcase tag) seen)
-                  (push tag out))))))))
+                  (push tag out))))))
+        (dolist (block (danbooru-builder--texts state owner cat))
+          ;; Preserve literals through section deduplication and name casing.
+          (push (propertize (danbooru-builder-text-text block)
+                            'danbooru-builder-literal t)
+                out))))
     (nreverse out)))
 
 (defun danbooru-builder--count-tags (state)
@@ -742,11 +713,13 @@ The last group changes fastest.  No variations gives one empty pick."
                        (format "%d%s%ss" (min n 6) (if (>= n 6) "+" "") kind)))))
 
 (defun danbooru-builder--uniq (tags)
-  "TAGS without case-insensitive duplicates."
+  "TAGS without case-insensitive duplicates, preserving literal text."
   (let (seen out)
     (dolist (tag tags)
-      (unless (member (downcase tag) seen)
-        (push (downcase tag) seen)
+      (unless (and (not (get-text-property 0 'danbooru-builder-literal tag))
+                   (member (downcase tag) seen))
+        (unless (get-text-property 0 'danbooru-builder-literal tag)
+          (push (downcase tag) seen))
         (push tag out)))
     (nreverse out)))
 
@@ -754,7 +727,8 @@ The last group changes fastest.  No variations gives one empty pick."
   "\"hatsune miku\" -> \"Hatsune Miku\"; a trailing \\(series\\) is kept."
   (let* ((i (string-search " \\(" tag))
          (name (if i (substring tag 0 i) tag)))
-    (if (or (string-prefix-p "(" name) (string-prefix-p "@" name))
+    (if (or (get-text-property 0 'danbooru-builder-literal tag)
+            (string-prefix-p "(" name) (string-prefix-p "@" name))
         tag
       (concat (mapconcat (lambda (w)
                            (if (string-empty-p w) w
@@ -774,16 +748,17 @@ Anima order: quality, count, character, series, @artist, general tags."
 Free-form text is interleaved with the generated prompt parts verbatim."
   (pcase-let ((`(,separator . ,layout) (danbooru-builder--prompt-layout state pick)))
     (cons separator (mapcar (lambda (part)
-                             (if (danbooru-builder-text-p part)
-                                 (danbooru-builder-text-text part)
-                               part))
+                             (substring-no-properties
+                              (if (danbooru-builder-text-p part)
+                                  (danbooru-builder-text-text part)
+                                part)))
                            layout))))
 
 (defun danbooru-builder--prompt-layout (state &optional pick)
   "Prompt parts and text blocks of STATE for PICK as (SEPARATOR . LAYOUT)."
   (pcase-let* ((`(,separator . ,parts) (danbooru-builder--base-prompt-parts state pick))
                (count (length parts))
-               (texts (cl-stable-sort (copy-sequence (danbooru-builder-state-texts state))
+               (texts (cl-stable-sort (danbooru-builder--positional-texts state)
                                       #'< :key #'danbooru-builder-text-position))
                (position 0)
                (layout nil))
@@ -797,7 +772,7 @@ Free-form text is interleaved with the generated prompt parts verbatim."
 
 (defun danbooru-builder--base-prompt-parts (state &optional pick)
   "The prompt of STATE for variant PICK as (SEPARATOR . PARTS).
-Joining PARTS with SEPARATOR gives the prompt before free-form text.
+Joining PARTS with SEPARATOR gives the prompt before legacy positional text.
 In tags style each tag is a part; natural style uses sentences."
   (let* ((pick (or pick (car (danbooru-builder--variants state))))
          (n (length (danbooru-builder--sections state)))
@@ -956,7 +931,16 @@ In tags style each tag is a part; natural style uses sentences."
                  (if (danbooru-builder-alt-off alt)
                      (concat "✗ " (propertize (danbooru-builder-alt-label alt)
                                               'face 'danbooru-builder-off))
-                   (concat "▸ " (danbooru-builder--alt-text alt))))))))))))
+                   (concat "▸ " (danbooru-builder--alt-text alt))))))))
+        (dolist (block (danbooru-builder--texts state owner cat))
+          (danbooru-builder--insert-line
+           (append props (list 'danbooru-builder-text block
+                               'danbooru-builder-category cat))
+           "  " (propertize (format "%-13s" (if first cat ""))
+                            'face 'danbooru-builder-category)
+           " " (propertize (concat "text: " (danbooru-builder-text-text block))
+                           'face 'danbooru-builder-prompt))
+          (setq first nil))))))
 
 (defun danbooru-builder--location ()
   "What point is on: (ALT ENTRY SECTION LINE TEXT)."
@@ -1008,7 +992,7 @@ In tags style each tag is a part; natural style uses sentences."
            (variants (danbooru-builder--variant-count state))
            (extra (danbooru-builder-state-extra state)))
       (insert "\n" (propertize (make-string 60 ?─) 'face 'shadow) "\n")
-      (when (danbooru-builder-state-texts state)
+      (when (danbooru-builder--positional-texts state)
         (danbooru-builder--insert-layout state))
       (unless (string-empty-p (or extra ""))
         (insert (propertize "extra: " 'face 'shadow) extra "\n"))
@@ -1034,7 +1018,7 @@ In tags style each tag is a part; natural style uses sentences."
         (props '(danbooru-builder-section prompt-order))
         (position 0))
     (danbooru-builder--insert-line
-     props (propertize "Prompt order — T add text, RET edit, t place, M-↑/↓ move"
+     props (propertize "Legacy prompt order — RET edit, t move to category, M-↑/↓ move"
                        'face 'danbooru-builder-heading))
     (dolist (part (cdr (danbooru-builder--prompt-layout state)))
       (if (danbooru-builder-text-p part)
@@ -1093,6 +1077,10 @@ In tags style each tag is a part; natural style uses sentences."
     (concat (if (equal label tag) "" (concat "  → " tag))
             "  " (danbooru-builder-item-category item)
             (if (string-empty-p group) "" (concat " / " group))
+            (let ((shared (danbooru-builder-item-shared item)))
+              (if (and shared (danbooru-catalog-item-vocabulary shared))
+                  (concat " " (danbooru-builder--format-count (danbooru-catalog-item-count shared)))
+                ""))
             (if desc (concat " · " desc) ""))))
 
 (defun danbooru-builder--format-count (n)
@@ -1226,68 +1214,69 @@ Text matching no known tag is added as a custom tag after asking."
 
 ;;; ── Commands ──
 
-(defun danbooru-builder--read-text-position (state &optional default)
-  "Read a position for free text in STATE, initially DEFAULT."
-  (let* ((parts (cdr (danbooru-builder--base-prompt-parts state)))
-         (choices (cons '("0: At start" . 0)
-                        (cl-loop for part in parts for i from 1
-                                 collect (cons (format "%d: After %s" i
-                                                       (truncate-string-to-width
-                                                        (replace-regexp-in-string
-                                                         "\n" " " part)
-                                                        90 nil nil "…"))
-                                               i))))
-         (default (min (length parts) (or default (length parts)))))
-    (cdr (assoc (completing-read "Text position: " choices nil t nil nil
-                                (car (nth default choices)))
-                choices))))
-
-(defun danbooru-builder-add-text (text position)
-  "Add literal TEXT at prompt POSITION, independent of tag categories.
-POSITION counts generated prompt parts before the text: zero is the start.
-In tags style a part is a tag; in natural style it is a sentence.
-Use M-up/M-down on a text block to move it through the prompt order."
+(defun danbooru-builder-add-text (text category &optional owner)
+  "Add literal TEXT after the tags of OWNER in CATEGORY.
+Interactively use the category and person at point; outside a category,
+ask for one.  Scene categories always belong to the scene."
   (interactive
-   (let* ((state (danbooru-builder--st))
+   (let* ((category (or (danbooru-builder--prop 'danbooru-builder-category)
+                        (danbooru-builder--read-category)))
           (text (read-string "Free-form text: ")))
-     (when (string-blank-p text) (user-error "Text is empty"))
-     (list text (danbooru-builder--read-text-position
-                 state (danbooru-builder--prop 'danbooru-builder-position)))))
-  (unless (and (stringp text) (not (string-blank-p text)) (natnump position))
-    (user-error "Text must be nonempty and position must be a nonnegative integer"))
+     (list text category (danbooru-builder--owner-at-point))))
+  (unless (and (stringp text) (not (string-blank-p text))
+               (stringp category) (not (string-blank-p category)))
+    (user-error "Text and category must be nonempty"))
   (let* ((state (danbooru-builder--st))
-         (block (danbooru-builder--make-text text position)))
+         (owner (unless (danbooru-builder--scene-category-p state category) owner))
+         (block (danbooru-builder--make-text text nil category owner)))
     (setf (danbooru-builder-state-texts state)
           (append (danbooru-builder-state-texts state) (list block)))
     (danbooru-builder--render)
     (danbooru-builder--goto-prop 'danbooru-builder-text block)))
 
 (defun danbooru-builder-place-text ()
-  "Choose a new prompt position for the free-form text at point."
+  "Choose a category for the free-form text at point."
   (interactive)
   (let* ((state (danbooru-builder--st))
          (block (or (danbooru-builder--prop 'danbooru-builder-text)
                     (user-error "No free-form text here"))))
-    (setf (danbooru-builder-text-position block)
-          (danbooru-builder--read-text-position
-           state (danbooru-builder-text-position block)))
+    (let ((category (danbooru-builder--read-category
+                     (danbooru-builder-text-category block))))
+      (setf (danbooru-builder-text-category block) category
+            (danbooru-builder-text-position block) nil
+            (danbooru-builder-text-owner block)
+            (unless (danbooru-builder--scene-category-p state category)
+              (danbooru-builder-text-owner block))))
     (danbooru-builder--render)))
 
 (defun danbooru-builder--move-text (state block dir)
-  "Move BLOCK through STATE's prompt layout by DIR (-1 or 1)."
-  (let* ((layout (cdr (danbooru-builder--prompt-layout state)))
-         (i (+ (cl-position block layout :test #'eq) dir))
-         (other (and (>= i 0) (nth i layout)))
-         (position 0)
-         texts)
-    (when other
-      (dolist (part (danbooru-builder--swap layout block other))
-        (if (danbooru-builder-text-p part)
-            (progn
-              (setf (danbooru-builder-text-position part) position)
-              (push part texts))
-          (cl-incf position)))
-      (setf (danbooru-builder-state-texts state) (nreverse texts)))))
+  "Move BLOCK among sibling text blocks by DIR (-1 or 1).
+Legacy positional blocks move through the prompt layout."
+  (if (danbooru-builder-text-category block)
+      (let* ((siblings (danbooru-builder--texts
+                        state (danbooru-builder-text-owner block)
+                        (danbooru-builder-text-category block)))
+             (i (+ (cl-position block siblings :test #'eq) dir))
+             (other (and (>= i 0) (nth i siblings))))
+        (when other
+          (setf (danbooru-builder-state-texts state)
+                (danbooru-builder--swap (danbooru-builder-state-texts state) block other))))
+    (let* ((layout (cdr (danbooru-builder--prompt-layout state)))
+           (i (+ (cl-position block layout :test #'eq) dir))
+           (other (and (>= i 0) (nth i layout)))
+           (position 0)
+           texts)
+      (when other
+        (dolist (part (danbooru-builder--swap layout block other))
+          (if (danbooru-builder-text-p part)
+              (progn
+                (setf (danbooru-builder-text-position part) position)
+                (push part texts))
+            (cl-incf position)))
+        (setf (danbooru-builder-state-texts state)
+              (append (seq-filter #'danbooru-builder-text-category
+                                  (danbooru-builder-state-texts state))
+                      (nreverse texts)))))))
 
 (defun danbooru-builder--add-items (items)
   "Add ITEMS to the section at point, after the entry at point when it fits."
@@ -1310,6 +1299,18 @@ Catalog tags, the Danbooru vocabulary and free text (a custom tag)."
      (danbooru-builder--read-items
       (format "Add to %s: " (danbooru-builder--owner-label
                              state (danbooru-builder--owner-at-point)))))))
+
+(defun danbooru-builder-pick-groups ()
+  "Pick structured catalog items for the scene or person at point."
+  (interactive)
+  (require 'danbooru-groups)
+  (let ((destination (copy-marker (point) t)))
+    (danbooru-groups-pick
+     nil (lambda (items)
+           (unless (marker-buffer destination) (user-error "Builder buffer no longer exists"))
+           (with-current-buffer (marker-buffer destination)
+             (goto-char destination)
+             (danbooru-builder--add-items (mapcar #'danbooru-builder--catalog-item items)))))))
 
 (defun danbooru-builder-add-in-category (category)
   "Add tags of CATEGORY (default: the category at point) to the section at point."
@@ -1567,6 +1568,7 @@ variation: split its active alternatives back into tags."
   "Reload the config, tag files and vocabulary."
   (interactive)
   (let ((state (danbooru-builder--st)))
+    (danbooru-catalog-get t)
     (setq danbooru-builder--catalog nil)
     (setf (danbooru-builder-state-catalog state) (danbooru-builder--catalog))
     (danbooru-builder--render)
@@ -1601,8 +1603,7 @@ variation: split its active alternatives back into tags."
 
 ;;; ── Generation ──
 
-(defconst danbooru-builder--max-batch 500
-  "Largest batch generate accepts.")
+(defvaralias 'danbooru-builder--max-batch 'danbooru-language-max-batch)
 
 (defconst danbooru-builder--confirm-batch 20
   "Generate asks before making more images than this.")
@@ -1626,6 +1627,8 @@ variation: split its active alternatives back into tags."
 (defun danbooru-builder--plan (state)
   "The images of one generate: ((SEED . PICK) ...), seeds outermost.
 SEED is nil for a random seed; all variants of one seed come out together."
+  (when (> (danbooru-builder--batch-size state) danbooru-language-max-batch)
+    (user-error "Builder batch exceeds limit %d" danbooru-language-max-batch))
   (let* ((gen (danbooru-builder-state-gen state))
          (seeds (if (< (plist-get gen :seed) 0)
                     (list nil)
@@ -1681,44 +1684,41 @@ SEED is nil for a random seed; all variants of one seed come out together."
                     (format "%s" (danbooru-builder--cfg (danbooru-builder-state-catalog state)
                                                         'preview_interval 1)))))))
 
+(defvar-local danbooru-builder--prepared nil)
+(defvar-local danbooru-builder--prepared-key nil)
+
+(defun danbooru-builder--runtime-prepared (state)
+  "Project legacy STATE through the shared compiler and prepare it once."
+  (require 'danbooru-builder-source)
+  (let ((key (danbooru-builder--serialize state)))
+    (unless (and danbooru-builder--prepared (equal key danbooru-builder--prepared-key))
+      (let* ((text (danbooru-builder-source-convert (read key) (danbooru-builder-state-catalog state) t))
+             (compilation (danbooru-language-compile text))
+             (context (plist-put (danbooru-runtime-context) :parameter-keys
+                                 '(:profile :width :height :steps :cfg :sampler :scheduler :neg)))
+             (prepared (danbooru-runtime-prepare (danbooru-runtime-plan compilation nil (current-buffer)) context)))
+        (dolist (job (danbooru-prepared-jobs prepared))
+          (let ((data (read key)) used)
+            (setf (plist-get (plist-get data :gen) :seed) (plist-get job :seed)
+                  (plist-get (plist-get data :gen) :seed-end) -1)
+            (dolist (entry (plist-get data :entries))
+              (when (plist-get entry :vary)
+                (let* ((marker (danbooru-builder--marker (plist-get entry :category) used))
+                       (chosen (cdr (assoc marker (plist-get job :choices)))))
+                  (push marker used)
+                  (when chosen
+                    (setf (plist-get entry :alts)
+                          (mapcar (lambda (alt)
+                                    (plist-put alt :off (not (and (equal (plist-get alt :label) (nth 1 chosen))
+                                                                  (equal (plist-get alt :tag) (nth 2 chosen))))))
+                                  (plist-get entry :alts)))))))
+            (nconc job (list :meta (list :builder (prin1-to-string data))))))
+        (setq danbooru-builder--prepared prepared danbooru-builder--prepared-key key)))
+    danbooru-builder--prepared))
+
 (defun danbooru-builder--jobs (state)
-  "Jobs for `danbooru-enqueue' making every image of STATE's batch."
-  (let* ((gen (danbooru-builder-state-gen state))
-         (backend (plist-get gen :backend))
-         (server (unless (equal backend "sd-cli") backend))
-         (random-seed (random 2147483647))
-         (plan (danbooru-builder--plan state))
-         (batch (cdr plan))
-         (dir (danbooru-builder--output-dir state))
-         (stamp (format-time-string "%Y%m%d-%H%M%S"))
-         (index 0))
-    (make-directory dir t)
-    (mapcar
-     (pcase-lambda (`(,seed . ,pick))
-       (let* ((seed (or seed random-seed))
-              (prompt (danbooru-builder--full-prompt state pick))
-              (out (expand-file-name
-                    (if batch
-                        (format "%s_b%03d_%d.png" stamp (cl-incf index) seed)
-                      (format "%s_%d.png" stamp seed))
-                    dir)))
-         (list :prompt prompt :seed seed :out out
-               :label (danbooru-builder--pick-label pick)
-               :params (list :profile (plist-get gen :profile)
-                             :width (plist-get gen :width) :height (plist-get gen :height)
-                             :steps (plist-get gen :steps) :cfg (plist-get gen :cfg)
-                             :sampler (plist-get gen :sampler)
-                             :scheduler (plist-get gen :scheduler)
-                             :neg (let ((neg (danbooru-builder-state-negative state)))
-                                    (unless (string-empty-p (or neg "")) neg)))
-               :server server
-               :command (unless server (danbooru-builder--command state prompt seed out))
-               :preview (unless server (danbooru-builder--preview-file state))
-               :meta (append (list :builder (danbooru-builder--serialize-for-image
-                                             state seed pick))
-                             (when-let* ((label (danbooru-builder--pick-label pick)))
-                               (list :variant label))))))
-     plan)))
+  "Compatibility concrete jobs from the shared compiler/preparation path."
+  (danbooru-prepared-jobs (danbooru-builder--runtime-prepared state)))
 
 (defun danbooru-builder--serialize-for-image (state seed pick)
   "STATE serialized to remake one image: SEED as its only seed and in
@@ -1776,21 +1776,63 @@ IMAGE defaults to the image shown or the one on the dired line."
       (pop-to-buffer-same-window buf)
       (message "Loaded the setup of %s (unsaved)" (file-name-nondirectory image)))))
 
-(defun danbooru-builder-generate ()
-  "Generate every image of the batch: each variant for each seed.
-Images queue behind a running generation."
+(defun danbooru-builder--image-matches-alternative-p (image entry alt)
+  "Return non-nil when IMAGE's saved setup used ENTRY's ALT."
+  (condition-case nil
+      (let* ((metadata (danbooru-builder--json-file (concat image ".json")))
+             (setup (gethash "builder" metadata))
+             (read-eval nil)
+             (data (and (stringp setup) (car (read-from-string setup)))))
+        (seq-some
+         (lambda (saved)
+           (and (equal (plist-get saved :owner) (danbooru-builder-entry-owner entry))
+                (equal (plist-get saved :category) (danbooru-builder-entry-category entry))
+                (plist-get saved :vary)
+                (seq-some (lambda (candidate)
+                            (and (not (plist-get candidate :off))
+                                 (equal (plist-get candidate :label)
+                                        (danbooru-builder-alt-label alt))
+                                 (equal (plist-get candidate :tag)
+                                        (danbooru-builder-alt-tag alt))))
+                          (plist-get saved :alts))))
+         (plist-get data :entries)))
+    (error nil)))
+
+(defun danbooru-builder-show-alternative-image ()
+  "Show the latest image generated using the variation alternative at point.
+Other variations do not restrict the match.  Search the configured output
+directory and use the existing image sidecar metadata."
   (interactive)
   (let* ((state (danbooru-builder--st))
-         (n (danbooru-builder--batch-size state)))
-    (when (string-empty-p (danbooru-builder--build-prompt state))
-      (user-error "The prompt is empty, add some tags first"))
-    (when (> n danbooru-builder--max-batch)
-      (user-error "A batch of %d images is too big (max %d); narrow the seeds or variations"
-                  n danbooru-builder--max-batch))
-    (when (and (> n danbooru-builder--confirm-batch)
-               (not (y-or-n-p (format "Generate %d images? " n))))
+         (alt (or (danbooru-builder--prop 'danbooru-builder-alt)
+                  (user-error "Not on an alternative of a variation")))
+         (entry (danbooru-builder--prop 'danbooru-builder-entry))
+         (dir (danbooru-builder--output-dir state))
+         (images (when (file-directory-p dir)
+                   (directory-files dir t "\\.png\\'")))
+         (images (sort images (lambda (a b)
+                                (time-less-p (file-attribute-modification-time (file-attributes b))
+                                             (file-attribute-modification-time (file-attributes a))))))
+         (image (seq-find (lambda (file)
+                            (danbooru-builder--image-matches-alternative-p file entry alt))
+                          images)))
+    (unless image
+      (user-error "No generated image found for %s" (danbooru-builder-alt-label alt)))
+    (let ((window (display-buffer (find-file-noselect image)
+                                  '((display-buffer-in-side-window)
+                                    (side . right) (slot . 0)))))
+      (unless window (user-error "Could not display %s" image))
+      (message "Showing %s" (file-name-nondirectory image)))))
+
+(defun danbooru-builder-generate ()
+  "Submit the legacy view through the same frozen compiler/runtime boundary."
+  (interactive)
+  (let ((prepared (danbooru-builder--runtime-prepared (danbooru-builder--st))))
+    (when (and (> (length (danbooru-prepared-jobs prepared)) danbooru-builder--confirm-batch)
+               (not (y-or-n-p (format "Generate %d images? " (length (danbooru-prepared-jobs prepared))))))
       (user-error "Cancelled"))
-    (danbooru-enqueue (danbooru-builder--jobs state))))
+    (prog1 (danbooru-runtime-submit prepared)
+      (setq danbooru-builder--prepared nil danbooru-builder--prepared-key nil))))
 
 (defun danbooru-builder-cancel ()
   "Stop the running generation and drop the queued images."
@@ -1798,33 +1840,9 @@ Images queue behind a running generation."
   (danbooru-cancel))
 
 (defun danbooru-builder-show-variants ()
-  "List every prompt the next generate makes."
+  "Prepare and show exactly the requests legacy Generate will submit."
   (interactive)
-  (let* ((state (danbooru-builder--st))
-         (plan (danbooru-builder--plan state))
-         (header (danbooru-builder--header-line))
-         (buf (get-buffer-create "*danbooru-variants*"))
-         (i 0))
-    (with-current-buffer buf
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (special-mode)
-        (visual-line-mode 1)
-        (setq header-line-format header)
-        (pcase-dolist (`(,seed . ,pick) plan)
-          (let ((label (danbooru-builder--pick-label pick)))
-            (insert (propertize (format "#%d  seed %s%s" (cl-incf i) (or seed "random")
-                                        (if label (format "  [%s]" label) ""))
-                                'face 'danbooru-builder-heading)
-                    "\n"
-                    (propertize (danbooru-builder--full-prompt state pick)
-                                'face 'danbooru-builder-prompt)
-                    "\n\n")))
-        (insert (propertize (concat "negative: " (or (danbooru-builder-state-negative state) ""))
-                            'face 'shadow)
-                "\n")
-        (goto-char (point-min))))
-    (display-buffer buf)))
+  (danbooru-runtime-preview (danbooru-builder--runtime-prepared (danbooru-builder--st)) "*danbooru-variants*"))
 
 ;;; ── Files ──
 
@@ -1853,8 +1871,11 @@ Images queue behind a running generation."
                (danbooru-builder-state-gen state))
        " :texts\n ("
        (lines (mapcar (lambda (block)
-                       (list :text (danbooru-builder-text-text block)
-                             :position (danbooru-builder-text-position block)))
+                       (append (list :text (danbooru-builder-text-text block))
+                               (if (danbooru-builder-text-category block)
+                                   (list :category (danbooru-builder-text-category block)
+                                         :owner (danbooru-builder-text-owner block))
+                                 (list :position (danbooru-builder-text-position block)))))
                      (danbooru-builder-state-texts state)))
        ")\n"
        " :persons\n ("
@@ -1913,16 +1934,6 @@ the wrong type keep the profile defaults."
       (let ((extra (plist-get data :extra)) (neg (plist-get data :negative)))
         (setf (danbooru-builder-state-extra state) (if (stringp extra) extra ""))
         (when (stringp neg) (setf (danbooru-builder-state-negative state) neg)))
-      (setf (danbooru-builder-state-texts state)
-            (mapcar
-             (lambda (block)
-               (let ((text (and (plistp block) (plist-get block :text)))
-                     (position (plist-get block :position)))
-                 (unless (and (stringp text) (not (string-blank-p text))
-                              (natnump position))
-                   (bad (format "free-form text %S" block)))
-                 (danbooru-builder--make-text text position)))
-             (plist-get data :texts)))
       (dolist (p (plist-get data :persons))
         (let ((id (and (plistp p) (plist-get p :id)))
               (type (plist-get p :type))
@@ -1936,6 +1947,23 @@ the wrong type keep the profile defaults."
                  (if (stringp pos) pos "") (and (stringp name) name))
                 persons)))
       (setf (danbooru-builder-state-persons state) (nreverse persons))
+      (setf (danbooru-builder-state-texts state)
+            (mapcar
+             (lambda (block)
+               (let ((text (and (plistp block) (plist-get block :text)))
+                     (category (plist-get block :category))
+                     (owner (plist-get block :owner))
+                     (position (plist-get block :position)))
+                 (unless (and (stringp text) (not (string-blank-p text))
+                              (if category
+                                  (and (stringp category) (not (string-blank-p category)))
+                                (natnump position)))
+                   (bad (format "free-form text %S" block)))
+                 (danbooru-builder--make-text
+                  text (unless category position) category
+                  (and category (memq owner ids)
+                       (not (danbooru-builder--scene-category-p state category)) owner))))
+             (plist-get data :texts)))
       (setf (danbooru-builder-state-entries state)
             (mapcar
              (lambda (e)
@@ -2037,7 +2065,7 @@ FILE saves there instead and makes it the builder's file."
   (danbooru-builder-save (danbooru-builder--read-save-file)))
 
 ;;;###autoload
-(defun danbooru-builder-open (file)
+(defun danbooru-builder-open-legacy (file)
   "Load builder FILE (.dbb) into the builder."
   (interactive
    (list (read-file-name "Open builder file: " (danbooru-builder--save-directory) nil t nil
@@ -2087,10 +2115,9 @@ FILE saves there instead and makes it the builder's file."
 (add-to-list 'auto-mode-alist '("\\.dbb\\'" . danbooru-builder-file-mode))
 
 (defun danbooru-builder-open-this-file ()
-  "Load the visited builder file into the builder, saving it first."
+  "Import the visited builder data without changing its .dbb file."
   (interactive)
   (unless buffer-file-name (user-error "Buffer is not visiting a file"))
-  (when (buffer-modified-p) (save-buffer))
   (danbooru-builder-open buffer-file-name))
 
 ;;; ── Export to .danbooru ──
@@ -2190,7 +2217,7 @@ alternatives to preserve text positions when variations change tag counts."
                  (format "(:size %d %d)\n(:steps %d)\n(:cfg %s)\n(:seed %d)\n"
                          (plist-get gen :width) (plist-get gen :height)
                          (plist-get gen :steps) (plist-get gen :cfg) seed))))
-      ;; A compound alternative occupies more parts than its export marker.
+      ;; Legacy positions can fall inside compound alternatives.
       ;; Whole-prompt alternatives also retain repeated literal text, which
       ;; the prompt compiler would otherwise deduplicate as separate tags.
       (if (and (danbooru-builder-state-texts state) (not expanded)
@@ -2484,6 +2511,7 @@ part of that format and are noted in a comment."
   :parent special-mode-map
   "a" #'danbooru-builder-add
   "A" #'danbooru-builder-add-in-category
+  "G" #'danbooru-builder-pick-groups
   "T" #'danbooru-builder-add-text
   "t" #'danbooru-builder-place-text
   "k" #'danbooru-builder-remove
@@ -2499,6 +2527,7 @@ part of that format and are noted in a comment."
   "U" #'danbooru-builder-unmark-all
   "v" #'danbooru-builder-vary
   "x" #'danbooru-builder-toggle-alternative
+  "i" #'danbooru-builder-show-alternative-image
   "l" #'danbooru-builder-link
   "P" #'danbooru-builder-add-person
   "e" #'danbooru-builder-edit-person
@@ -2540,10 +2569,27 @@ part of that format and are noted in a comment."
     buf))
 
 ;;;###autoload
-(defun danbooru-builder ()
+(defun danbooru-builder-legacy ()
   "Open the prompt builder, creating it on first use."
   (interactive)
   (pop-to-buffer-same-window (danbooru-builder--get-buffer)))
+
+;;; ── Source-connected compiler projection ──
+
+(autoload 'danbooru-builder-import "danbooru-builder-source" nil t)
+
+;;;###autoload
+(defun danbooru-builder ()
+  "Open the legacy Danbooru builder."
+  (interactive)
+  (danbooru-builder-legacy))
+
+;;;###autoload
+(defun danbooru-builder-open (file)
+  "Open a .danbooru FILE, or import a legacy .dbb FILE."
+  (interactive (list (read-file-name "Open prompt or import .dbb: " nil nil t)))
+  (if (string-suffix-p ".dbb" file) (danbooru-builder-import file)
+    (find-file file)))
 
 (provide 'danbooru-builder)
 ;;; danbooru-builder.el ends here

@@ -3,6 +3,9 @@
 For reusable people, outfits, poses, and environments, see
 [Reusable prompt libraries](danbooru-library.md).
 
+Compiler behavior checked against the local [danbooru.el](danbooru.el)
+source on 2026-10-25.
+
 Researched 2026-10-16 against the [official CircleStone Labs model card](https://huggingface.co/circlestone-labs/Anima#prompting).
 
 Anima accepts tags, English captions, or a mixture. Its authors recommend
@@ -20,7 +23,7 @@ in both prompts. Turbo is designed for CFG 1 and 8–12 steps. The general
 Base recommendation of 30–50 steps and CFG 4–5 should not be applied to Turbo.
 See the [version and settings notes](https://huggingface.co/circlestone-labs/Anima#versions).
 
-## What the compiler now does
+## What the compiler does
 
 - Reads Lisp forms as data without evaluating them.
 - Expands `:def` names automatically in tag data and imports definitions
@@ -45,6 +48,28 @@ inserted automatically, and generation settings remain under your control.
 With the local workflow, negative prompts require CFG greater than 1, so
 editing negatives at Turbo's CFG 1 will not help. A server keeps its loaded
 checkpoint; `:model` only selects a model when using the script backend.
+
+## Generation settings
+
+These top-level directives apply to every variation combination:
+
+| Directive | Accepted value | Fallback when omitted |
+| --- | --- | --- |
+| `(:model turbo)` | `turbo` or `aesthetic`, as a symbol or string. | `danbooru-model` (`"turbo"`). |
+| `(:size 832 1216)` | Two positive integers: width and height. | `danbooru-width` and `danbooru-height` (both `1200`). |
+| `(:steps 12)` | A positive integer or `nil`. | `danbooru-steps` (`nil`). |
+| `(:cfg 1)` | A nonnegative number or `nil`. | `danbooru-cfg` (`nil`). |
+| `(:seed 42)` | An integer of `-1` or greater; `-1` requests randomness. | `danbooru-seed` (`-1`). |
+
+`:steps nil` and `:cfg nil` also use the corresponding Emacs setting.
+When that setting is `nil`, the request omits the value and the backend
+chooses its default. A random seed is chosen once when generation is
+queued and is shared by all variants in that call. Preview shows the
+requested seed, without choosing a random one.
+
+Prompt files contain Lisp data. Older JSON prompt files and the former
+`:character`, `:outfit`, `:scene`, `:panel`, and `:defaults` directives are
+unsupported. Use `:def` blocks and top-level `:vary` alternatives instead.
 
 ## A hybrid prompt
 

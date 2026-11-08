@@ -4,6 +4,8 @@ Use the same tag mini language for single images and sequences of images.
 Define reusable appearance, clothing, environments, and complete shots with
 `:def`, then choose shots with `:vary`.
 
+Checked against the local [danbooru.el](danbooru.el) source on 2026-10-25.
+
 The complete [manga example](examples/manga.danbooru) produces four images:
 a meeting, two reaction alternatives, and a departure. For imported
 libraries, see [Reusable prompt libraries](danbooru-library.md).
@@ -31,6 +33,10 @@ prefixes. Any definition can combine other definitions, and definitions
 may appear before or after their references. Unused definitions emit no
 tags. All names are case-sensitive.
 
+The former `:character`, `:outfit`, `:scene`, `:panel`, and `:defaults`
+directives are unsupported. Represent those concepts with `:def` names;
+put shared tags and settings at top level and complete shots in `:vary`.
+
 Nested lists flatten into one comma-separated prompt and duplicate tags
 are removed. Lists do not associate attributes with particular people.
 For multiple people, include natural-language strings describing each
@@ -44,7 +50,8 @@ substituted too.
 - `C-c C-c` generates all variation combinations.
 - `C-c C-r` generates them with a fresh seed.
 - Select complete alternatives inside one `:vary` to preview or generate
-  only that subset with the same commands.
+  only that subset with the same commands. Exclude the `:vary` header and
+  closing parenthesis; `C-g` deactivates the region to use all alternatives.
 - `C-c C-k` cancels running and queued work.
 - `C-c C-j` opens Imenu for local `:def` names; `M-n` / `M-p` move between them.
 
@@ -60,17 +67,28 @@ reused across variants; a random seed is chosen once per generation call.
 Use separate working prompt files with a shared `:include` library when
 shots need different dimensions, seeds, or sampling settings.
 
-Each image gets a timestamped filename, with an index and label for
-batches. File-backed prompts save in a subdirectory named after the
-prompt file. Rerolls produce new files. A neighboring JSON file records
-the self-contained source, resolved prompt, actual seed, requested
-parameters, and backend.
+File-backed prompts save under `danbooru-output-dir` in a subdirectory
+named after the prompt file without its extension. A single job uses
+`MMDD-HHMM.png`; a batch uses `MMDD-HHMM-LABEL.png`. The label is built from
+the expanded variation values, lowercased, converted to a filename slug,
+and truncated to 40 characters. There is no numeric index in the filename.
+For shots, the label contains the expanded tags rather than the `shot/`
+definition name.
+
+The timestamp has minute precision. Rerunning within the same minute can
+overwrite images and their sidecars; batch labels can also collide after
+conversion or truncation. A neighboring `IMAGE.png.json` records the
+self-contained source, resolved prompt, actual seed, requested parameters,
+and backend.
 
 `M-x danbooru-regenerate` uses the source remembered in the image buffer,
 or the last prompt, and requests a fresh seed. For a selected variation
 subset it preserves that subset. Imported definitions are saved as an
 expanded source snapshot, so regeneration does not depend on later
-library edits.
+library edits. It reruns every variation in that snapshot, which can
+produce several images from one image buffer. Omitted settings use the
+current Emacs settings and backend defaults. The command does not reload
+sidecars when images are reopened in a new session.
 
 This workflow generates individual images. Page layout, lettering, and
 image reference conditioning belong to separate tools.

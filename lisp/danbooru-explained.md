@@ -589,18 +589,44 @@ The reload code updates key bindings and navigation in existing prompt buffers, 
 
 ### The optional group picker
 
-[danbooru-groups.el](danbooru-groups.el) is a separate companion library.
-After loading it, `M-x danbooru-groups-pick` reads `danbooru-groups-file`,
-a JSON object shaped as main group → subgroup → array of tag strings.
-It shows the hierarchy in a `special-mode` buffer with buffer-local
-selection and expansion state.
+[danbooru-catalog.el](danbooru-catalog.el) loads the JSON groups and CSV
+vocabulary for prompt completion, builder completion, and the groups picker.
+It retains each item's identity, canonical tag, label, category, group path,
+description, and source location. Builder profiles and backend configuration
+stay in the builder's separate `config.json`.
 
-`TAB` or `SPC` toggles the group or item at point. `RET` inserts selected
-items, separated by spaces, at the saved position in the originating
-buffer; `q` closes the picker. Items are inserted in selection order.
-This picker does not compile or generate prompts and has no default key
-binding in `danbooru-prompt-mode`. Its JSON vocabulary is separate from
-the CSV used by tag completion and from image metadata.
+Configure `danbooru-catalog-directory` for `tags/*.json` and
+`tags/vocab/*.csv`, `danbooru-catalog-groups-file` for an optional groups JSON,
+and `danbooru-catalog-tag-file` or `danbooru-catalog-vocabulary-files` for
+additional CSV sources. Existing `danbooru-builder-directory`,
+`danbooru-groups-file`, and `danbooru-tag-file` settings remain aliases.
+The JSON adapters accept builder label/tag/description objects and nested
+groups ending in arrays of tags. CSV supports quoted fields and doubled quotes.
+Source locations are file plus JSON path, or file plus CSV line. Duplicate
+occurrences retain distinct identities; canonical lookup prefers hierarchical
+items, then the vocabulary occurrence with the highest usage count.
+
+Press `C-c C-t` in prompt mode or run `M-x danbooru-groups-pick` to browse.
+In the legacy builder, `G` opens the same picker and adds the chosen items to
+the scene or person at point. `TAB` or `SPC` folds a group or toggles one
+leaf item; folding a group never selects its contents. `RET` accepts leaves
+in selection order, `g` reloads, and `q` closes the picker. Source insertion
+uses a moving marker and escapes Lisp reader punctuation; top-level
+selections become a prompt list. Insertion into comments or strings reports
+an error. Source edits remain normal undoable buffer changes.
+
+Call `(danbooru-groups-pick FILE CALLBACK)` to receive structured
+`danbooru-catalog-item` records instead of inserting text. Optional `FILE`
+overrides the groups JSON for that picker; the remaining shared sources
+still apply. Each picker has its own selection state and destination.
+
+Catalog access checks file revisions and discovers added or removed sources.
+Builder and picker `g` commands force a reload; other clients see the new
+snapshot on their next catalog access. Reload removes selections whose item
+identity disappeared. Missing optional sources yield an empty catalog;
+malformed sources produce shared diagnostics while valid sources remain
+available. Ordinary literal prompts and local block completion work without
+catalog files.
 
 ## 13. Try the compiler without generating an image
 
