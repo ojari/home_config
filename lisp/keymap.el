@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (global-set-key [f10] 'server-edit)
 (global-set-key [f11] 'kill-current-buffer)
 (global-set-key [f12] 'magit-status)

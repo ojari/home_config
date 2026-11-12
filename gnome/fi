@@ -121,11 +121,11 @@ xkb_symbols "fi" {
     key <AD02> { [  w,               W,                dead_circumflex,       W                     ] };
     key <AD03> { [  e,               E,                EuroSign,              cent                  ] };
     key <AD04> { [  r,               R,                registered,            NoSymbol              ] };
-    key <AD05> { [  t,               T,                deal_tilde,            THORN                 ] };
+    key <AD05> { [  t,               T,                dead_tilde,            THORN                 ] };
     key <AD06> { [  y,               Y,                y,                     Y                     ] };
     key <AD07> { [  u,               U,                u,                     U                     ] };
     key <AD08> { [  i,               I,                idotless,              bar                   ] };
-    key <AD09> { [  o,               O,                o,                     O                     ] };
+    key <AD09> { [  o,               O,                aring,                 Aring                 ] };
     key <AD10> { [  p,               P,                paragraph,             NoSymbol              ] };
     key <AD11> { [  braceleft,       bracketleft,      oe,                    OE                    ] };
     key <AD12> { [  braceright,      bracketright,     dead_tilde,            dead_caron            ] };
